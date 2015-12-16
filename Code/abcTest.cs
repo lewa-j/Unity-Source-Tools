@@ -1,8 +1,0 @@
-
-class Test
-{
-  void abc()
-  {
-  
-  }
-}
