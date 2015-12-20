@@ -1,4 +1,7 @@
-[Ll]ibrary/
+Library/FailedAssetImports.txt
+Library/cache/
+Library/previews/
+Library/ScriptAssemblies
 [Tt]emp/
 [Oo]bj/
 [Bb]uild/
