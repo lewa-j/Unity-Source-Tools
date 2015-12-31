@@ -255,15 +255,23 @@ namespace uSrcTools
 				//WorldSpawn(data);
 				return;
 			}
-
+			
+			Vector3 angles = new Vector3 (0,0,0);
 			if(data[0]=="model")
 			{
 				GameObject obj = Models.First(m=>m.name==data[data.FindIndex(n=>n=="model")+1]);
+				
 				if(data.Contains ("origin"))
 				{
 					obj.transform.position = ConvertUtils.stringToVector(data[data.FindIndex (n=>n=="origin")+1]);
 				}
-
+				
+				if(data.Contains ("angles"))
+				{
+					string[] t=data[data.FindIndex (n=>n=="angles")+1].Split(' ');
+					angles = new Vector3(-float.Parse(t[2]),-float.Parse(t[1]),-float.Parse(t[0]));
+					obj.transform.eulerAngles = angles;
+				}
 				
 				if(className=="func_illusionary")
 				{
@@ -278,12 +286,13 @@ namespace uSrcTools
 			}
 			string[] testEnts = new string[]{"info_player_start","sky_camera","point_camera",
 			"light_environment","prop_dynamic","prop_dynamic_override"/*,"point_viewcontrol"*/,"info_target",
-				"light_spot","light","info_survivor_position","env_projectedtexture","func_illusionary"};
+				"light_spot","light","info_survivor_position","env_projectedtexture","func_illusionary",
+				"prop_button","prop_floor_button","prop_weighted_cube"};
 
 			if(testEnts.Contains(className))
 			{
 				string targetname=null;
-				Vector3 angles = new Vector3 (0,0,0);
+				
 				if(data.Contains ("targetname"))
 					targetname = data[data.FindIndex (n=>n=="targetname")+1];
 					
@@ -360,9 +369,18 @@ namespace uSrcTools
 					}
 				}
 
-				if((className=="prop_dynamic"|className=="prop_dynamic_override")&&uSrcSettings.Inst.props)
+				if((className=="prop_dynamic"|className=="prop_dynamic_override"|className=="prop_weighted_cube"|className=="prop_floor_button"|className=="prop_button")&&uSrcSettings.Inst.props)
 				{
-					string modelName=data[data.FindIndex (n=>n=="model")+1];
+					string modelName="";
+					
+					if(data.Contains ("model"))
+						modelName=data[data.FindIndex (n=>n=="model")+1];
+					else if(className=="prop_weighted_cube")
+						modelName="models/props/metal_box.mdl";
+					else if(className=="prop_floor_button")
+						modelName="models/props/portal_button.mdl";
+					else if(className=="prop_button")
+						modelName="models/props/switch001.mdl";
 
 					//angles.y-=90;
 					//Kostyl
@@ -386,6 +404,37 @@ namespace uSrcTools
 					}
 
 				}
+				
+				/*if(className=="prop_floor_button")
+				{
+					string modelname="models/props/button_base_reference.mdl";
+					SourceStudioModel baseModel = ResourceManager.Inst.GetModel(modelName);
+					if(baseModel==null||!baseModel.loaded)
+					{
+						Debug.LogWarning("Error loading: "+modelName);
+					}
+					else
+					{
+						GameObject baseObj=new GameObject("button_base");
+						baseObj.transform.SetParent(go.transform);
+						baseModel.GetInstance(baseObj, true,0);
+					}
+					
+					modelname="models/props/button_top_reference.mdl";
+					SourceStudioModel topModel = ResourceManager.Inst.GetModel(modelName);
+					if(topModel==null||!topModel.loaded)
+					{
+						Debug.LogWarning("Error loading: "+modelName);
+					}
+					else
+					{
+						GameObject topObj=new GameObject("button_base");
+						topObj.transform.SetParent(go.transform);
+						topModel.GetInstance(topObj, true,0);
+					}
+						
+					obj.transform.eulerAngles = angles;
+				}*/
 			}
 
 		}

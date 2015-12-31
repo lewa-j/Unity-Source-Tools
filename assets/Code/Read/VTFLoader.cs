@@ -178,11 +178,11 @@ public class VTFLoader : MonoBehaviour
 			temp.Apply(true);
 			//if(remipmap)
 			//{
-			//	Color32[] tempCol = temp.GetPixels32();
-			//	temp = new Texture2D((int)header.width, (int)header.height, TextureFormat.RGBA32, true);
-			//	temp.SetPixels32(tempCol);
-			//	temp.Apply(true);
-			//	temp.Compress(true);
+				Color32[] tempCol = temp.GetPixels32();
+				temp = new Texture2D((int)header.width, (int)header.height, TextureFormat.RGBA32, true);
+				temp.SetPixels32(tempCol);
+				temp.Apply(true);
+				temp.Compress(true);
 			//}
 			temp.name = name;
 

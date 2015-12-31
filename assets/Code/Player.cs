@@ -57,6 +57,11 @@ public class Player : MonoBehaviour
 				//cam.localPosition=new Vector3(0,origHeight-0.1f,0);
 			}
 		}
+
+		if(Input.GetKeyDown(KeyCode.R))
+		{
+			transform.position=Test.Inst.startPos;
+		}
 	}
 
 	/*void FixedUpdate () 

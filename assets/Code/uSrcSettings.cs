@@ -30,6 +30,7 @@ namespace uSrcTools
 		
 		public Shader sDiffuse;
 		public Shader sTransparent;
+		public Shader sAlphatest;
 		public Shader sUnlit;
 		public Shader sUnlitTransparent;
 		public Shader sVertexLit;

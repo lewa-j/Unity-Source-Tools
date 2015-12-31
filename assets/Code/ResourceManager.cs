@@ -119,12 +119,18 @@ namespace uSrcTools
 				{
 					if(vmtFile.selfillum)
 						tempmat = new Material(uSrcSettings.Inst.sSelfillum);
-					else if(vmtFile.alphatest || vmtFile.translucent)
+					else if(vmtFile.alphatest)
+						tempmat = new Material(uSrcSettings.Inst.sAlphatest);
+					else if(vmtFile.translucent) 
 						tempmat = new Material(uSrcSettings.Inst.sTransparent);
 					else
 						tempmat = new Material(uSrcSettings.Inst.sVertexLit);
 				}
-				else if(vmtFile.shader.ToLower()=="water")
+				else if(vmtFile.shader.ToLower()=="refract")
+				{
+					tempmat = new Material(uSrcSettings.Inst.sRefract);
+				}
+				/*else if(vmtFile.shader.ToLower()=="water")
 				{
 					Debug.Log ("Water shader not done. Used Diffuse");
 					tempmat = new Material(uSrcSettings.Inst.sDiffuse);
@@ -138,11 +144,7 @@ namespace uSrcTools
 				{
 					Debug.Log ("EyeRefract shader not done. Used Diffuse");
 					tempmat = new Material(uSrcSettings.Inst.sDiffuse);
-				}
-				else if(vmtFile.shader.ToLower()=="refract")
-				{
-					tempmat = new Material(uSrcSettings.Inst.sRefract);
-				}
+				}*/
 				else
 				{
 					Debug.LogWarning("Shader "+vmtFile.shader+" from VMT "+materialName+" not suported");
@@ -221,14 +223,14 @@ namespace uSrcTools
 	
 		static bool CheckFullFiles(string filename)
 		{
-			string path=uSrcSettings.Inst.path + "/hl2old/";
+			string path=uSrcSettings.Inst.path + "/"+uSrcSettings.Inst.game+"full/";
 			
 			if(!CheckFile(path + filename))
 				return false;
 			
 			string dirpath=uSrcSettings.Inst.path + "/" + uSrcSettings.Inst.game + "/";
 			
-			Debug.LogWarning ("Moving: "+path + filename+" to "+dirpath+filename);
+			Debug.LogWarning ("Copying: "+path + filename+" to "+dirpath+filename);
 
 			
 			if(!Directory.Exists (dirpath + filename.Remove(filename.LastIndexOf("/"))))
