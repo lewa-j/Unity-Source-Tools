@@ -37,6 +37,7 @@ namespace uSrcTools
 		public Shader sSelfillum;
 		public Shader sAdditive;
 		public Shader sRefract;
+		public Shader sWorldVertexTransition;
 
 		/*public Shader Lmap;
 		public Shader LmapAlpha;

@@ -1,4 +1,4 @@
-﻿Shader "Custom/SelfIllumiumAlpha" 
+﻿Shader "uSrcTools/SelfIllumiumAlpha" 
 {
 	Properties 
 	{

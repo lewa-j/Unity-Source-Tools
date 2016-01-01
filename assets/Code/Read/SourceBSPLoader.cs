@@ -11,6 +11,14 @@ namespace uSrcTools
 	[Serializable]
 	public class SourceBSPLoader : MonoBehaviour 
 	{
+		public enum Type
+		{
+			Full,
+			WithoutBatching,
+			OneFace,
+			OnlyDisplacements
+		}
+
 		public BSPFile map;
 		
 		public GameObject mapObject;
@@ -21,15 +29,16 @@ namespace uSrcTools
 
 		public List<GameObject> Models = new List<GameObject>();
 		public List<GameObject> Props = new List<GameObject>();
+
 		public List<string> entities = new List<string>();
 
 		public List<LightmapData> lightmapsData;
 
-		public string tempLog;
 		string materaialsToLoad;
 		private string LevelName;
 
-		public int faceId=-1;
+		public Type LoadType=Type.Full;
+		public int faceId=0;
 		public int maxLMs=4608;
 
 		public void Load (string mapName)
@@ -42,21 +51,18 @@ namespace uSrcTools
 
 			if(path==null)
 			{
-				Debug.Log ("maps/"+LevelName+".bsp: Not Found");
 				return;
 			}
 
 			BinaryReader BR = new BinaryReader (File.Open (path, FileMode.Open));
 
-			map = new BSPFile (BR,LevelName);
+			map = new BSPFile (BR, LevelName);
 			if(uSrcSettings.Inst.entities)
+			{
 				ParseEntities (map.entitiesLump);
+			}
 			//ProcessFaces();
 
-			/*for(int i=0;i<entities.Count;i++)
-			{
-				LoadEntity (i);
-			}*/
 			//===================================================
 			mapObject = new GameObject (LevelName);
 
@@ -75,23 +81,20 @@ namespace uSrcTools
 				propsObject.transform.parent = mapObject.transform;
 			}
 
-			//for (int i=0; i<modelsLump.Length; i++) 
-			//{
-			//	BuildModelObject(i);
-			//}
-			 
-			if(faceId==-1)
+			switch(LoadType)
 			{
+			case Type.Full:
 				if(uSrcSettings.Inst.lightmaps&&map.hasLightmaps)
 				{
 					lightmapsData = new List<LightmapData>();
 				}
 
+				Debug.Log ("Start Loading World Faces");
 				for (int i=0; i<map.modelsLump.Length; i++) 
 				{
 					CreateModelObject(i);
 				}
-				//CreateModelObject(0);
+
 				if(uSrcSettings.Inst.lightmaps&&map.hasLightmaps)
 					LightmapSettings.lightmaps = lightmapsData.ToArray();
 
@@ -170,63 +173,47 @@ namespace uSrcTools
 					}
 					Debug.Log("Finish Static Props");
 				}
-			}
-			//====================================================
-			else if(faceId==-2 & uSrcSettings.Inst.displacements)
-			{
-				for(int i=0; i<map.dispinfoLump.Length;i++)
-				{
-					GenerateDispFaceObject ((int)map.dispinfoLump[i].MapFace, 0);
-					Debug.Log ("FaceId: " + map.dispinfoLump[i].MapFace + " DispInfoId: "+i+
-					           " DispVertStart: " + map.dispinfoLump[i].DispVertStart);
-				}
-			}
-			else if(faceId==-3)
-			{
+				break;
+
+			case Type.WithoutBatching:
 				for (int i=0; i<map.modelsLump.Length; i++) 
 				{
 					Models.Add(new GameObject("*"+i));
 					Models[i].transform.SetParent( modelsObject.transform);
 					for (int f=map.modelsLump[i].firstface; f<map.modelsLump[i].firstface+map.modelsLump[i].numfaces; f++) 
 					{
-						GenerateFaceObject(f,i);
+						GenerateFaceObject(f).transform.SetParent(Models[i].transform);
 					}
 				}
-			}
-			else
-			{
+				break;
+
+			case Type.OnlyDisplacements:
 				if(uSrcSettings.Inst.displacements)
+				{
+					for(int i=0; i<map.dispinfoLump.Length;i++)
+					{
+						GenerateDispFaceObject ((int)map.dispinfoLump[i].MapFace, 0);
+						Debug.Log ("FaceId: " + map.dispinfoLump[i].MapFace + " DispInfoId: "+i+
+						           " DispVertStart: " + map.dispinfoLump[i].DispVertStart);
+					}
+				}
+				break;
+
+			case Type.OneFace:
+				if(uSrcSettings.Inst.displacements&map.facesLump[faceId].dispinfo!=-1)
 				{
 					GenerateDispFaceObject (faceId, 0);
 					Debug.Log ("FaceId: "+faceId+" DispInfoId: " + map.facesLump[faceId].dispinfo+
 						" DispVertStart: "+map.dispinfoLump[map.facesLump[faceId].dispinfo].DispVertStart);
 				}
 				else
-					GenerateFaceObject(faceId, 0);
-					
-			}
-			BR.BaseStream.Dispose ();
-		}
-
-		void WorldSpawn(List<string> data)
-		{
-			mapObject = new GameObject (LevelName);
-			propsObject = new GameObject ("props");
-			propsObject.transform.parent = mapObject.transform;
-			//for (int i=0; i<modelsLump.Length; i++) 
-			//{
-			//	BuildModelObject(i);
-			//}
-			for (int i=0; i<map.modelsLump.Length; i++) 
-			{
-				Models.Add(new GameObject("*"+i));
-				Models[i].transform.parent = mapObject.transform;
-				for (int f=map.modelsLump[i].firstface; f<map.modelsLump[i].firstface+map.modelsLump[i].numfaces; f++) 
 				{
-					GenerateFaceObject(f,i);
+					GenerateFaceObject(faceId);
 				}
+				break;
 			}
 
+			BR.BaseStream.Dispose ();
 		}
 		 
 		void ParseEntities(string input)
@@ -236,7 +223,6 @@ namespace uSrcTools
 			{
 				entities.Add (match.Value);
 			}
-			tempLog+= ("Load: "+entities.Count+" Entityes \n");
 		}
 
 		void LoadEntity(int index)
@@ -259,7 +245,8 @@ namespace uSrcTools
 			Vector3 angles = new Vector3 (0,0,0);
 			if(data[0]=="model")
 			{
-				GameObject obj = Models.First(m=>m.name==data[data.FindIndex(n=>n=="model")+1]);
+				int modelIndex=int.Parse(data[data.FindIndex(n=>n=="model")+1].Substring(1));
+				GameObject obj = Models[modelIndex];
 				
 				if(data.Contains ("origin"))
 				{
@@ -446,37 +433,24 @@ namespace uSrcTools
 			int numFaces = map.modelsLump[index].numfaces;
 			int firstFace = map.modelsLump[index].firstface;
 
-
-			//Debug.Log ("Model "+index+" Lightmaps count "+tempLightmaps.Length);
-
 			GameObject model = new GameObject ("*" + index);
 			model.transform.parent = modelsObject.transform;
 			Models.Add (model);
 			model.isStatic = true;
-			if(uSrcSettings.Inst.lightmaps&&map.hasLightmaps)
+			if(uSrcSettings.Inst.lightmaps && map.hasLightmaps)
 				model.layer=8;
-
-			Vector3 origin = map.modelsLump[index].origin;
-			if(origin!=Vector3.zero) Debug.Log ("Model "+index+" on origin: "+origin.ToString());
-
-			//List<Vector3> verts=new List<Vector3>();
-			//List<Vector2> UVs=new List<Vector2>();
-			//List<Vector2> UV2s=new List<Vector2>();
-			//List<int> tris = new List<int>();
 
 			bspface face;
 			bsptexdata texdata;
 
 			if(uSrcSettings.Inst.textures)
 			{
-				//Debug.Log ("Start calc tex faces");
 				for (int i = firstFace; i < firstFace + numFaces; i++) 
 				{
 					face = map.facesLump[i];
 					texdata = map.texdataLump[map.texinfosLump[face.texinfo].texdata];
 					if(texdata.faces==null)
 					{
-						//Debug.Log ("Texdata faces is null. Init");
 						if((map.texinfosLump[face.texinfo].flags & 4) == 0)
 						{
 							texdata.faces=new List<int>();
@@ -493,6 +467,7 @@ namespace uSrcTools
 
 				}
 			}
+
 			//int numlightfaces = numFaces;
 			if (!uSrcSettings.Inst.textures) 
 			{
@@ -829,7 +804,7 @@ namespace uSrcTools
 
 		}
 
-		void GenerateFaceObject(int index, int model)
+		GameObject GenerateFaceObject(int index)
 		{
 			//List<Vector3> verts=new List<Vector3>();
 			//List<Vector2> UVs=new List<Vector2>();
@@ -921,10 +896,12 @@ namespace uSrcTools
 			mf.mesh.RecalculateNormals ();
 			//mf.mesh.RecalculateBounds ();
 
-			//faceObject.transform.parent = Models[model].transform;
-			faceObject.transform.SetParent(modelsObject.transform);
+			faceObject.transform.parent = modelsObject.transform;
+
 			mf.mesh.Optimize ();
 			faceObject.isStatic = true;
+
+			return faceObject;
 		}
 
 		void GenerateDispFaceObject(int index, int model)
@@ -942,6 +919,7 @@ namespace uSrcTools
 			mf.mesh.vertices=f.points;
 			mf.mesh.triangles = f.triangles;
 			mf.mesh.uv=f.uv;
+			mf.mesh.colors32=f.cols;
 
 			if (uSrcSettings.Inst.textures) 
 			{
@@ -996,6 +974,7 @@ namespace uSrcTools
 			public Vector3[] points;
 			public Vector2[] uv;
 			public Vector2[] uv2;
+			public Color32[] cols;
 			public int[] triangles;
 			
 			public int lightMapW;
@@ -1082,6 +1061,7 @@ namespace uSrcTools
 			Vector3[] vertices = new Vector3[4];
 			List<Vector3> disp_verts = new List<Vector3>();
 			List<Vector2> UVs = new List<Vector2>();
+			List<Color32> cols=new List<Color32>();
 			List<int> indices = new List<int>();
 
 			bspface curFace = map.facesLump[faceIndex];
@@ -1183,6 +1163,7 @@ namespace uSrcTools
 					float tV = Vector3.Dot(flatVertex, curTexInfo.texvect) + (curTexInfo.texofft);
 					UVs.Add( new Vector2(tU * scaleU, tV * scaleV));
 			
+					cols.Add(new Color32((byte)(dispVert.alpha),0,0,0));
 				}
 			}
 
@@ -1233,10 +1214,11 @@ namespace uSrcTools
 			f.triangles = indices.ToArray ();;
 			f.uv = UVs.ToArray();
 			//f.uv2 = UV2s;
+			f.cols=cols.ToArray();
 			//f.flags = flags;
 			f.index = faceIndex;
 			f.dispinfo = dispinfoId;
-			
+
 			return f;
 		}
 
@@ -1311,7 +1293,6 @@ namespace uSrcTools
 			//return Mathf.Clamp((float)c * exponent*0.5f, 0, 255)/255.0f;
 			return (Mathf.Clamp((float)c * exponent, 0, 255)*0.5f)/255.0f;
 		}
-
 	}
 
 }

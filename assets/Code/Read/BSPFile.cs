@@ -32,6 +32,7 @@ namespace uSrcTools
 		//
 		public bspdispinfo[] dispinfoLump;
 		//
+		//public byte[] dispAlphasLumps;
 		public bspDispVert[] dispVertsLump;
 		//
 		//
@@ -86,6 +87,7 @@ namespace uSrcTools
 			{
 				dispinfoLump = ReadDispInfo ();
 				//
+				//dispAlphasLumps= ReadDispAlphas();
 				dispVertsLump = ReadDispVerts ();
 				//
 			}
@@ -412,6 +414,15 @@ namespace uSrcTools
 			
 			return temp;
 		}
+
+		byte[] ReadDispAlphas()
+		{
+			br.BaseStream.Seek(header.lumps[SourceBSPStructs.LUMP_DISP_LIGHTMAP_ALPHAS].fileofs,SeekOrigin.Begin);
+			int dispAlphasCount=header.lumps[SourceBSPStructs.LUMP_DISP_LIGHTMAP_ALPHAS].filelen;
+			
+			Debug.Log ("Load :"+dispAlphasCount+" DispAlphas ");
+			return br.ReadBytes(dispAlphasCount);
+		}
 		
 		bspDispVert[] ReadDispVerts()
 		{
@@ -517,9 +528,14 @@ namespace uSrcTools
 					prop.LightingOrigin=ConvertUtils.ReadVector3(br);
 				}
 				if(gl.version>=5)
-				{//ep2 - 72
+				{
 					prop.ForcedFadeScale = br.ReadSingle();
 					//br.BaseStream.Seek(12,SeekOrigin.Current);
+				}
+				if(gl.version>=6&gl.version<8)
+				{
+					prop.MinDXLevel = br.ReadUInt16();
+					prop.MaxDXLevel = br.ReadUInt16();
 				}
 				if(gl.version>=8)
 				{

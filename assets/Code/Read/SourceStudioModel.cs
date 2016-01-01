@@ -774,7 +774,8 @@ namespace uSrcTools
 			{
 				BR.BaseStream.Seek (bp.modelindex + offset + (i*148), SeekOrigin.Begin);
 				string tempName=new string (BR.ReadChars (64));
-				tempName = tempName.Remove (tempName.IndexOf ('\0'));
+				if(tempName.Contains ('\0'))
+					tempName = tempName.Remove (tempName.IndexOf ('\0'));
 				temp[i] = new studiomodel (tempName, BR.ReadInt32 (), BR.ReadSingle (), BR.ReadInt32 (),
 		              				   BR.ReadInt32 (), BR.ReadInt32 (), BR.ReadInt32 (), BR.ReadInt32 (),
 				                           BR.ReadInt32 (), BR.ReadInt32 (), BR.ReadInt32 (), BR.ReadInt32 (),new mstudio_modelvertexdata_t(BR.ReadInt32(),BR.ReadInt32()));

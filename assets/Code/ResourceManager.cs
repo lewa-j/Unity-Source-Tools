@@ -130,17 +130,23 @@ namespace uSrcTools
 				{
 					tempmat = new Material(uSrcSettings.Inst.sRefract);
 				}
-				/*else if(vmtFile.shader.ToLower()=="water")
-				{
-					Debug.Log ("Water shader not done. Used Diffuse");
-					tempmat = new Material(uSrcSettings.Inst.sDiffuse);
-				}
 				else if(vmtFile.shader.ToLower()=="worldvertextransition")
 				{
-					Debug.Log ("WorldVertexTransition shader not done. Used Diffuse");
-					tempmat = new Material(uSrcSettings.Inst.sDiffuse);
+					tempmat = new Material(uSrcSettings.Inst.sWorldVertexTransition);
+
+					string bt2=vmtFile.basetexture2;
+					Texture tex2=GetTexture(bt2);
+					tempmat.SetTexture("_MainTex2",tex2);
+					if(tex2==null)
+						Debug.LogWarning("Error loading second texture "+bt2+" from material "+materialName);
 				}
-				else if(vmtFile.shader.ToLower()=="eyerefract")
+				else if(vmtFile.shader.ToLower()=="water")
+				{
+					Debug.LogWarning("Shader "+vmtFile.shader+" from VMT "+materialName+" not suported");
+					tempmat = new Material(uSrcSettings.Inst.sTransparent);
+					tempmat.color=new Color(1,1,1,0.3f);
+				}
+				/*else if(vmtFile.shader.ToLower()=="eyerefract")
 				{
 					Debug.Log ("EyeRefract shader not done. Used Diffuse");
 					tempmat = new Material(uSrcSettings.Inst.sDiffuse);
@@ -170,7 +176,7 @@ namespace uSrcTools
 					//tempmat.color = new Color (1, 1, 1, 0f);
 				}
 				
-				if(vmtFile.dudvmap!=null)
+				if(vmtFile.dudvmap!=null&vmtFile.shader.ToLower()=="refract")
 				{
 					string dudv=vmtFile.dudvmap.ToLower ();
 					Texture dudvTex=GetTexture(dudv);
@@ -178,7 +184,7 @@ namespace uSrcTools
 					if(dudvTex==null)
 						Debug.LogWarning("Error loading texture "+dudv+" from material "+materialName);
 				}
-				
+					
 				Materials.Add (materialName,tempmat);
 				return tempmat;
 			}

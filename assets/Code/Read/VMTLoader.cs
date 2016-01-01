@@ -12,6 +12,7 @@ namespace uSrcTools
 		{
 			public string shader;
 			public string basetexture;
+			public string basetexture2;
 			public string bumpmap;
 			public string surfaceprop;
 			public string detil;
@@ -186,6 +187,11 @@ namespace uSrcTools
 				//	material.basetexture = null;
 
 
+			}
+
+			if(parameters.ContainsKey("$basetexture2"))
+			{
+				material.basetexture2=parameters["$basetexture2"];
 			}
 
 			if(parameters.ContainsKey("$bumpmap"))

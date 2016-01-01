@@ -26,6 +26,7 @@ namespace uSrcTools
 		public Vector3 startPos;
 
 		public bool loadMap = true;
+		public bool loadModel= false;
 		public bool exportMap = false;
 		public bool isL4D2=false;
 
@@ -50,7 +51,8 @@ namespace uSrcTools
 					COLLADAExport.Export(@"I:\uSource\test\"+mapName+".dae",g,false,false);
 				}
 			}
-			else 
+
+			if(loadModel)
 			{
 				GameObject modelObj=new GameObject("TestModel");
 				model.Load (@"models/"+modelName+".mdl");
@@ -69,11 +71,6 @@ namespace uSrcTools
 		{
 			if(model!=null)
 				model.OnDrawGizmos ();
-		}
-
-		void Dummy()
-		{
-
 		}
 	}
 
