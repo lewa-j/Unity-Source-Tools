@@ -54,6 +54,30 @@ namespace uSrcTools
 		public const int LUMP_DISP_TRIS 	= 48;	//Displacement surface triangles 
 		
 		public const int LUMP_LIGHTING_HDR 	= 53;	//HDR lightmap samples 
+
+		public const int LUMP_FACES_HDR		= 58; 	//HDR maps may have different face data
+
+
+		public const int SURF_LIGHT	=	0x0001;		// value will hold the light strength
+		public const int SURF_SKY2D	=	0x0002;		// don't draw, indicates we should skylight + draw 2d sky but not draw the 3D skybox
+		public const int SURF_SKY	=	0x0004;		// don't draw, but add to skybox
+		public const int SURF_WARP	=	0x0008;		// turbulent water warp
+		public const int SURF_TRANS	=	0x0010;
+		public const int SURF_NOPORTAL=	0x0020;	// the surface can not have a portal placed on it
+		public const int SURF_TRIGGER=	0x0040;	// FIXME: This is an xbox hack to work around elimination of trigger surfaces, which breaks occluders
+		public const int SURF_NODRAW=	0x0080;	// don't bother referencing the texture
+
+		public const int SURF_HINT	=	0x0100;	// make a primary bsp splitter
+
+		public const int SURF_SKIP	=	0x0200;	// completely ignore, allowing non-closed brushes
+		public const int SURF_NOLIGHT=	0x0400;	// Don't calculate light
+		public const int SURF_BUMPLIGHT=0x0800;	// calculate three lightmaps for the surface for bumpmapping
+		public const int SURF_NOSHADOWS=0x1000;	// Don't receive shadows
+		public const int SURF_NODECALS=	0x2000;	// Don't receive decals
+		public const int SURF_NOCHOP =	0x4000;	// Don't subdivide patches on this surface 
+		public const int SURF_HITBOX =	0x8000;	// surface is part of a hitbox
+		
+
 	}
 	
 	[Serializable]

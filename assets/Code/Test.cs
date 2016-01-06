@@ -29,6 +29,8 @@ namespace uSrcTools
 		public bool loadModel= false;
 		public bool exportMap = false;
 		public bool isL4D2=false;
+		public bool forceHDR=false;
+		public bool skipSky=true;
 
 		void Awake()
 		{
@@ -38,7 +40,7 @@ namespace uSrcTools
 		void Start () 
 		{
 			//player.transform.position = GameObject.Find ("info_player_start").transform.position;
-		
+
 			if (loadMap) 
 			{
 				if(bsp==null)

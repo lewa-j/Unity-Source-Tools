@@ -11,6 +11,7 @@ namespace uSrcTools
 		public class VMTFile
 		{
 			public string shader;
+
 			public string basetexture;
 			public string basetexture2;
 			public string bumpmap;
@@ -77,7 +78,7 @@ namespace uSrcTools
 
 				if(depth == 0)
 				{
-					material.shader=line.Trim('"');
+					material.shader=line.Trim('"').ToLower();
 				}
 				else if(depth==1)
 				{
@@ -151,6 +152,12 @@ namespace uSrcTools
 					//Debug.Log (name+ " include "+parameters["include"].ToLower());
 					material = ParseVMTFile(parameters["include"].ToLower());
 					//return ParseVMTFile(parameters["include"].ToLower());
+
+					if(material==null)
+					{
+						Debug.LogError("Include material missing");
+						return null;
+					}
 				}
 				else
 				{

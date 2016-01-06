@@ -30,16 +30,12 @@ namespace uSrcTools
 			modelName = modelName.ToLower ();
 			if(models.ContainsKey(modelName))
 			{
-				//if(models[modelName]!=null)
-				//	models[modelName].GetInstance(go);
 				return models[modelName];
 			}
 			else
 			{
 				SourceStudioModel tempModel = new SourceStudioModel().Load(modelName);
 				models.Add (modelName, tempModel);
-				//if(tempModel!=null)
-				//	tempModel.GetInstance(go);
 				return tempModel;
 			}
 
@@ -90,7 +86,7 @@ namespace uSrcTools
 			//Material
 			if (vmtFile != null)
 			{
-				if(vmtFile.shader.ToLower()=="lightmappedgeneric")
+				if(vmtFile.shader=="lightmappedgeneric")
 				{
 					if(vmtFile.selfillum)
 						tempmat = new Material(uSrcSettings.Inst.sSelfillum);
@@ -99,7 +95,7 @@ namespace uSrcTools
 					else
 						tempmat = new Material(uSrcSettings.Inst.sTransparent);
 				}
-				else if(vmtFile.shader.ToLower()=="unlitgeneric")
+				else if(vmtFile.shader=="unlitgeneric")
 				{
 					if(vmtFile.additive)
 					{
@@ -111,11 +107,11 @@ namespace uSrcTools
 					else
 						tempmat = new Material(uSrcSettings.Inst.sUnlitTransparent);
 				}
-				else if(vmtFile.shader.ToLower()=="unlittwotexture")
+				else if(vmtFile.shader=="unlittwotexture")
 				{
 					tempmat = new Material(uSrcSettings.Inst.sUnlit);
 				}
-				else if(vmtFile.shader.ToLower()=="vertexlitgeneric")
+				else if(vmtFile.shader=="vertexlitgeneric")
 				{
 					if(vmtFile.selfillum)
 						tempmat = new Material(uSrcSettings.Inst.sSelfillum);
@@ -126,11 +122,11 @@ namespace uSrcTools
 					else
 						tempmat = new Material(uSrcSettings.Inst.sVertexLit);
 				}
-				else if(vmtFile.shader.ToLower()=="refract")
+				else if(vmtFile.shader=="refract")
 				{
 					tempmat = new Material(uSrcSettings.Inst.sRefract);
 				}
-				else if(vmtFile.shader.ToLower()=="worldvertextransition")
+				else if(vmtFile.shader=="worldvertextransition")
 				{
 					tempmat = new Material(uSrcSettings.Inst.sWorldVertexTransition);
 
@@ -140,13 +136,22 @@ namespace uSrcTools
 					if(tex2==null)
 						Debug.LogWarning("Error loading second texture "+bt2+" from material "+materialName);
 				}
-				else if(vmtFile.shader.ToLower()=="water")
+				else if(vmtFile.shader=="water")
 				{
 					Debug.LogWarning("Shader "+vmtFile.shader+" from VMT "+materialName+" not suported");
 					tempmat = new Material(uSrcSettings.Inst.sTransparent);
 					tempmat.color=new Color(1,1,1,0.3f);
 				}
-				/*else if(vmtFile.shader.ToLower()=="eyerefract")
+				else if(vmtFile.shader=="black")
+				{
+					tempmat = new Material(uSrcSettings.Inst.sUnlit);
+					tempmat.color=Color.black;
+				}
+				else if(vmtFile.shader=="infected")
+				{
+					tempmat = new Material(uSrcSettings.Inst.sDiffuse);
+				}
+				/*else if(vmtFile.shader=="eyerefract")
 				{
 					Debug.Log ("EyeRefract shader not done. Used Diffuse");
 					tempmat = new Material(uSrcSettings.Inst.sDiffuse);
@@ -176,7 +181,7 @@ namespace uSrcTools
 					//tempmat.color = new Color (1, 1, 1, 0f);
 				}
 				
-				if(vmtFile.dudvmap!=null&vmtFile.shader.ToLower()=="refract")
+				if(vmtFile.dudvmap!=null&vmtFile.shader=="refract")
 				{
 					string dudv=vmtFile.dudvmap.ToLower ();
 					Texture dudvTex=GetTexture(dudv);

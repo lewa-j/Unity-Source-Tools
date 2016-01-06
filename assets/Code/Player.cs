@@ -27,9 +27,10 @@ public class Player : MonoBehaviour
 	{
 		if(Test.Inst.skyCamera!=null)
 		{
-			Test.Inst.skyCamera.transform.localPosition=(Test.Inst.playerCamera.transform.position/16)+Test.Inst.skyCameraOrigin;
-			Test.Inst.skyCamera.transform.rotation=Test.Inst.playerCamera.transform.rotation;
+			Test.Inst.skyCamera.transform.position = (Test.Inst.playerCamera.transform.position/16f)+Test.Inst.skyCameraOrigin;
+			Test.Inst.skyCamera.transform.rotation = Test.Inst.playerCamera.transform.rotation;
 		}
+		
 		if (Input.GetKey (KeyCode.LeftShift))
 			speed = runSpeed;
 		else

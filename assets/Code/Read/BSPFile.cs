@@ -21,7 +21,7 @@ namespace uSrcTools
 		//bspnode[] nodesLump;
 		public bsptexinfo[] texinfosLump;
 		public bspface[] facesLump;
-		public RGBExp32[] lightingLump;
+		public Color32[] lightingLump;
 		//
 		//bspleaf[] leafsLump;
 		//
@@ -54,6 +54,7 @@ namespace uSrcTools
 
 		public bool staticPropsReaded=false;
 		public bool hasLightmaps;
+		public bool onlyHDR=false;
 
 		public BSPFile (BinaryReader nbr, string name)
 		{
@@ -71,11 +72,30 @@ namespace uSrcTools
 			//
 			//
 			texinfosLump = ReadTexInfos ();
-			facesLump = ReadFaces ();
 			if (uSrcSettings.Inst.lightmaps)
-				lightingLump = ReadLighting ();
+			{
+				if(!Test.Inst.forceHDR&header.lumps[SourceBSPStructs.LUMP_LIGHTING].filelen>0)
+				{
+					hasLightmaps=true;
+					lightingLump = ReadLighting ();
+					onlyHDR=false;
+					facesLump = ReadFaces (SourceBSPStructs.LUMP_FACES);
+				}
+				else if(header.lumps[SourceBSPStructs.LUMP_LIGHTING_HDR].filelen>0)
+				{
+					hasLightmaps=true;
+					lightingLump = ReadHDRLighting ();
+					onlyHDR=true;
+					facesLump = ReadFaces (SourceBSPStructs.LUMP_FACES_HDR);
+				}
+				else
+					hasLightmaps=false;
+			}
 			else
+			{
 				hasLightmaps = false;
+				facesLump = ReadFaces (SourceBSPStructs.LUMP_FACES);
+			}
 			//
 			//
 			//
@@ -222,10 +242,10 @@ namespace uSrcTools
 			return temp;
 		}
 		
-		bspface[] ReadFaces()
+		bspface[] ReadFaces(int lump)
 		{
-			br.BaseStream.Seek (header.lumps [SourceBSPStructs.LUMP_FACES].fileofs, SeekOrigin.Begin);
-			int numFaces = header.lumps [SourceBSPStructs.LUMP_FACES].filelen / 56;
+			br.BaseStream.Seek (header.lumps [lump].fileofs, SeekOrigin.Begin);
+			int numFaces = header.lumps [lump].filelen / 56;
 			bspface[] temp=new bspface[numFaces];
 			for(int i=0;i<numFaces;i++)
 			{
@@ -254,64 +274,84 @@ namespace uSrcTools
 			return temp;
 		}
 		
-		RGBExp32[] ReadLighting()
+		Color32[] ReadLighting()
 		{
 			br.BaseStream.Seek (header.lumps [SourceBSPStructs.LUMP_LIGHTING].fileofs, SeekOrigin.Begin);
 			int lmapCount = header.lumps[SourceBSPStructs.LUMP_LIGHTING].filelen / 4;
 			Debug.Log("Lightmap lump size: "+lmapCount);
 
-			if (lmapCount == 0)
-			{
-				hasLightmaps = false;
-				Debug.Log ("Map haven't lightmaps");
-				return null;//ReadHDRLighting();
-			}
-			hasLightmaps=true;
+			Color32[] temp = new Color32[lmapCount];
 
-			RGBExp32[] temp = new RGBExp32[lmapCount];
-
+			byte r,g,b;
+			float exp;
+			
 			for(int i = 0; i < lmapCount; i++)
 			{
-				RGBExp32 col = new RGBExp32();
-				col.r = br.ReadByte();
-				col.g = br.ReadByte();
-				col.b = br.ReadByte();
-				col.exp = br.ReadSByte();
+				r = br.ReadByte();
+				g = br.ReadByte();
+				b = br.ReadByte();
+				exp = (float)Mathf.Pow (2, br.ReadSByte());
+
+				/*colors[o] = new Color(TexLightToLinearF(r, exp),
+					                      TexLightToLinearF(g, exp),
+					                      TexLightToLinearF(b, exp),
+					                      1f);
+				*/
+				
+				Color32 col = new Color32(TexLightToLinearB(r, exp),
+				                          TexLightToLinearB(g, exp),
+				                          TexLightToLinearB(b, exp),
+				                          255);
 				temp[i] = col;
 			}
 
 			return temp;
 		}
 		
-		RGBExp32[] ReadHDRLighting()
+		Color32[] ReadHDRLighting()
 		{
 			br.BaseStream.Seek (header.lumps [SourceBSPStructs.LUMP_LIGHTING_HDR].fileofs, SeekOrigin.Begin);
 			int lmapCount = header.lumps[SourceBSPStructs.LUMP_LIGHTING_HDR].filelen / 4;
-			Debug.Log("HDR Lightmap lump size: "+header.lumps[SourceBSPStructs.LUMP_LIGHTING_HDR].filelen );
+			Debug.Log("HDR Lightmap lump size: "+lmapCount );
 
-			if (lmapCount == 0)
-			{
-				hasLightmaps = false;
-				Debug.Log ("Map haven't hdr lightmaps");
-				return ReadHDRLighting();
-			}
-			hasLightmaps=true;
+			Color32[] temp = new Color32[lmapCount];
 
-			RGBExp32[] temp = new RGBExp32[lmapCount];
+			byte r,g,b;
+			float exp;
 
 			for(int i = 0; i < lmapCount; i++)
 			{
-				RGBExp32 col = new RGBExp32();
-				col.r = br.ReadByte();
-				col.g = br.ReadByte();
-				col.b = br.ReadByte();
-				col.exp = br.ReadSByte();
+				r = br.ReadByte();
+				g = br.ReadByte();
+				b = br.ReadByte();
+				exp = (float)Mathf.Pow (2, br.ReadSByte());
+				
+				//Color32 col = new Color32((byte)Mathf.Clamp(r*exp,0,255), (byte)Mathf.Clamp(g*exp,0,255), (byte)Mathf.Clamp(b*exp,0,255), 255);
+
+				Color col = new Color(TexLightToLinearF(r, exp),
+				                      TexLightToLinearF(g, exp),
+				                      TexLightToLinearF(b, exp),
+				                      1f).gamma;
+
 				temp[i] = col;
 			}
 
 			return temp;
 		}
+
 		
+		
+		byte TexLightToLinearB(byte c, float exponent)
+		{
+			return (byte)Mathf.Clamp(((float)c * exponent)*0.5f, 0, 255);
+		}
+		
+		float TexLightToLinearF(byte c, float exponent)
+		{
+			return Mathf.Clamp((float)c * exponent*0.5f, 0, 255)/255.0f;
+			//return (Mathf.Clamp((float)c * exponent, 0, 255)*0.5f)/255.0f;
+		}
+
 		ushort[][] ReadEdges()
 		{
 			br.BaseStream.Seek (header.lumps [SourceBSPStructs.LUMP_EDGES].fileofs, SeekOrigin.Begin);
@@ -354,7 +394,7 @@ namespace uSrcTools
 				model.numfaces = br.ReadInt32 ();
 				temp[i] = model;
 			}
-			tempLog+= ("Load :"+modelCount+" Models \n");
+			tempLog+= ("Load: "+modelCount+" Models \n");
 			return temp;
 		}
 		
@@ -384,12 +424,8 @@ namespace uSrcTools
 				//br.BaseStream.Seek(40,SeekOrigin.Current);//40b
 
 			}
-			tempLog+= ("Load :"+dispinfoCount+" DispInfos \n");
-			Debug.Log ("Load :"+dispinfoCount+" DispInfos ");
-			Debug.Log ("DispInfo lump Offset: "+header.lumps [SourceBSPStructs.LUMP_DISPINFO].fileofs+
-			           " \nDispInfo lump Length: "+header.lumps [SourceBSPStructs.LUMP_DISPINFO].filelen+
-			           " \nOne DispInfo Length(?): "+176+
-			           " \nDispInfo lump Count: "+header.lumps [SourceBSPStructs.LUMP_DISPINFO].filelen / 176);
+			tempLog+= ("Load: "+dispinfoCount+" DispInfos \n");
+			Debug.Log ("Load: "+dispinfoCount+" DispInfos ");
 			return temp;
 		}
 		
@@ -420,7 +456,7 @@ namespace uSrcTools
 			br.BaseStream.Seek(header.lumps[SourceBSPStructs.LUMP_DISP_LIGHTMAP_ALPHAS].fileofs,SeekOrigin.Begin);
 			int dispAlphasCount=header.lumps[SourceBSPStructs.LUMP_DISP_LIGHTMAP_ALPHAS].filelen;
 			
-			Debug.Log ("Load :"+dispAlphasCount+" DispAlphas ");
+			Debug.Log ("Load: "+dispAlphasCount+" DispAlphas ");
 			return br.ReadBytes(dispAlphasCount);
 		}
 		
@@ -437,8 +473,8 @@ namespace uSrcTools
 				vert.alpha = br.ReadSingle();
 				temp[i] = vert;
 			}
-			tempLog+= ("Load :"+dispVertCount+" DispVerts \n");
-			Debug.Log ("Load :"+dispVertCount+" DispVerts ");
+			tempLog+= ("Load: "+dispVertCount+" DispVerts \n");
+			Debug.Log ("Load: "+dispVertCount+" DispVerts ");
 			return temp;
 		}
 		
@@ -446,6 +482,12 @@ namespace uSrcTools
 		{
 			br.BaseStream.Seek (header.lumps [SourceBSPStructs.LUMP_GAME_LUMP].fileofs, SeekOrigin.Begin);
 			gameLumpCount = br.ReadInt32 ();
+			if(gameLumpCount>32)
+			{
+				Debug.LogError("Game lump count too big");
+				tempLog+= ("Game lump count too big\n");
+				return null;
+			}
 			bspgamelump[] temp = new bspgamelump[gameLumpCount];
 			for(int i=0;i<gameLumpCount;i++)
 			{
@@ -457,7 +499,7 @@ namespace uSrcTools
 				gamelump.filelen = br.ReadInt32 ();
 				temp[i] = gamelump;
 			}
-			tempLog+= ("Load :"+gameLumpCount+" GameLumps \n");
+			tempLog+= ("Load: "+gameLumpCount+" GameLumps \n");
 			return temp;
 		}
 		

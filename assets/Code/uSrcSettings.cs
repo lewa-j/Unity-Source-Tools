@@ -24,6 +24,7 @@ namespace uSrcTools
 		public bool lightmaps = false;
 		public bool displacements = false;
 		public bool props = true;
+		public bool propsDynamic=false;
 		public bool entities = true;
 		public bool showTriggers = false;
 		public bool genColliders=false;
