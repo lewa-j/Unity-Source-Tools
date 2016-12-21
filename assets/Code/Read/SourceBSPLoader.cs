@@ -251,7 +251,8 @@ namespace uSrcTools
 				
 				if(data.Contains ("origin"))
 				{
-					obj.transform.position = ConvertUtils.stringToVector(data[data.FindIndex (n=>n=="origin")+1]);
+					if(data.FindIndex (n=>n=="origin")%2==0)
+						obj.transform.position = ConvertUtils.StringToVector(data[data.FindIndex (n=>n=="origin")+1]);
 				}
 				
 				if(data.Contains ("angles"))
@@ -296,7 +297,7 @@ namespace uSrcTools
 				GameObject obj = new GameObject(targetname ?? className);
 				//if(className.Contains("light"))
 				obj.transform.parent = entObject.transform;
-				obj.transform.position = ConvertUtils.stringToVector(data[data.FindIndex (n=>n=="origin")+1]);
+				obj.transform.position = ConvertUtils.StringToVector(data[data.FindIndex (n=>n=="origin")+1]);
 				obj.transform.eulerAngles = angles;
 
 				/*if(className=="light")
@@ -997,7 +998,7 @@ namespace uSrcTools
 			List<Vector2> UV2s=new List<Vector2>();
 			List<int> tris = new List<int>();
 
-			bspface curface =map.facesLump[index];
+			bspface curface = map.facesLump[index];
 			int startEdge = curface.firstedge;
 			int nEdges = curface.numedges;
 			//Debug.Log("texinfo "+curface.texinfo+"/"+map.texinfosLump.Length);
@@ -1237,7 +1238,7 @@ namespace uSrcTools
 		Texture2D CreateLightmapTex(surface f)
 		{
 			int rowColors=f.lightMapW;
-			Texture2D tex = new Texture2D (f.lightMapW, f.lightMapH, TextureFormat.RGB24, false,true); 
+			Texture2D tex = new Texture2D (f.lightMapW, f.lightMapH, TextureFormat.RGB24, false,true);
 			//tex.filterMode = FilterMode.Point;
 			Color32[] colors = new Color32[(f.lightMapW) * (f.lightMapH)];
 

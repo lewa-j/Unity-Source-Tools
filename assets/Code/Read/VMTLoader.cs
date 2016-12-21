@@ -155,7 +155,7 @@ namespace uSrcTools
 
 					if(material==null)
 					{
-						Debug.LogError("Include material missing");
+						Debug.LogError("Include \""+parameters["include"].ToLower()+"\" from material \""+name+"\" missing");
 						return null;
 					}
 				}

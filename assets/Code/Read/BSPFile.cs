@@ -290,7 +290,7 @@ namespace uSrcTools
 				r = br.ReadByte();
 				g = br.ReadByte();
 				b = br.ReadByte();
-				exp = (float)Mathf.Pow (2, br.ReadSByte());
+				exp = (float)Mathf.Pow (2f, (float)br.ReadSByte());
 
 				/*colors[o] = new Color(TexLightToLinearF(r, exp),
 					                      TexLightToLinearF(g, exp),
@@ -344,6 +344,7 @@ namespace uSrcTools
 		byte TexLightToLinearB(byte c, float exponent)
 		{
 			return (byte)Mathf.Clamp(((float)c * exponent)*0.5f, 0, 255);
+			//return (byte)(Mathf.Pow(Mathf.Clamp((float)c * (Mathf.Pow(2.0f,(float)exponent)),0,255)/255f,0.45f)*255f/2f);
 		}
 		
 		float TexLightToLinearF(byte c, float exponent)

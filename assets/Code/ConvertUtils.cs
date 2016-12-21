@@ -5,15 +5,24 @@ using System.IO;
 namespace uSrcTools
 {
 
-public class ConvertUtils
-{
-	public static Vector3 stringToVector(string input)
+	public class ConvertUtils
 	{
-		Vector3 origin = Vector3.zero;;
-		string[] posStrings = input.Split(new char[]{' '});
+		public static Vector3 StringToVector(string input)
+		{
+			Vector3 origin = Vector3.zero;;
+			string[] posStrings = input.Split(new char[]{' '});
+			if(posStrings.Length<3)
+				Debug.LogError("String "+input+" is not Vector3");
+			try{
 			origin = new Vector3(float.Parse(posStrings[0]),float.Parse(posStrings[2]),float.Parse(posStrings[1]))*uSrcSettings.Inst.worldScale;
-		return origin;
-	}
+			}
+			catch(System.FormatException e)
+			{
+				Debug.LogError("StringToVector error "+e.Message);
+				origin = Vector3.zero;
+			}
+			return origin;
+		}
 
 	public static Vector2 ReadVector2 (BinaryReader BR)
 	{
