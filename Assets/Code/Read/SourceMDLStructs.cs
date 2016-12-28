@@ -1,6 +1,8 @@
 using System;
 using UnityEngine;
 
+namespace uSrcTools
+{
 class SourceMDLStructs
 {
 	public const int MAX_NUM_BONES_PER_VERT = 3;
@@ -568,4 +570,5 @@ public struct vtxStripHeader
 		this.numBoneStateChange = numBoneStateChange;
 		this.boneStateChangeOffset = boneStateChangeOffset;
 	}
+}
 }

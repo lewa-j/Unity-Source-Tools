@@ -120,7 +120,7 @@ namespace uSrcTools
 			//
 			//
 			//
-			if(uSrcSettings.Inst.textures)
+			//if(uSrcSettings.Inst.textures)
 				readTexdataString ();
 
 		}
@@ -135,7 +135,7 @@ namespace uSrcTools
 		{
 			br.BaseStream.Seek (0, SeekOrigin.Begin);
 			bspheader header = new bspheader ();
-			header.magic = new string (br.ReadChars(4));
+			header.ident = br.ReadInt32();
 			header.version = br.ReadInt32 ();
 			header.lumps=new bsplump[SourceBSPStructs.HEADER_LUMPS];
 			for(int i=0;i<SourceBSPStructs.HEADER_LUMPS;i++)
@@ -156,7 +156,10 @@ namespace uSrcTools
 					header.lumps[i].fourCC = new string(br.ReadChars(4));
 				}
 			}
-			Debug.Log (header.magic+" version: "+header.version);
+			if(header.ident==SourceBSPStructs.VBSP)
+				Debug.Log ("VBSP version: "+header.version);
+			else
+				throw new Exception("Unknown format");
 			return header;
 		}
 		

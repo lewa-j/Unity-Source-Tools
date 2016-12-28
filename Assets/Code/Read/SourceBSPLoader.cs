@@ -27,29 +27,38 @@ namespace uSrcTools
 		public GameObject dispObject;
 		public GameObject entObject;
 
-		public List<GameObject> Models = new List<GameObject>();
-		public List<GameObject> Props = new List<GameObject>();
+		public GameObject[] models;
+		public List<GameObject> Props;
 
-		public List<string> entities = new List<string>();
+		public List<string> entities;
 
-		public List<LightmapData> lightmapsData;
-
-		string materaialsToLoad;
+		//string materaialsToLoad;
 		private string LevelName;
 
-		public Type LoadType=Type.Full;
-		public int faceId=0;
-		public int maxLMs=4608;
+		public Type LoadType = Type.Full;
+		public int faceId = 0;
+		private bool loaded = false;
+
+		public List<LightmapData> lightmapsData;
+		private const int BLOCK_SIZE = 1024;
+		int[] lm_allocated;
+		Texture2D curLightmapTex;
+		int curLightmap = 0;
 
 		public void Load (string mapName)
 		{
+			if(loaded)
+			{
+				Debug.LogWarning("Already loaded");
+				return;
+			}
 			LevelName = mapName;
 			
 			string path = "";
 
 			path = ResourceManager.GetPath ("maps/" + LevelName + ".bsp");
 
-			if(path==null)
+			if(path == null)
 			{
 				return;
 			}
@@ -57,28 +66,32 @@ namespace uSrcTools
 			BinaryReader BR = new BinaryReader (File.Open (path, FileMode.Open));
 
 			map = new BSPFile (BR, LevelName);
+			loaded = true;
+
 			if(uSrcSettings.Inst.entities)
 			{
 				ParseEntities (map.entitiesLump);
 			}
-			//ProcessFaces();
 
 			//===================================================
 			mapObject = new GameObject (LevelName);
+			mapObject.isStatic = true;
 
 			modelsObject = new GameObject ("models");
-			modelsObject.transform.parent = mapObject.transform;
+			modelsObject.transform.SetParent( mapObject.transform );
+			modelsObject.isStatic = true;
 
 			if (uSrcSettings.Inst.displacements)
 			{
-				dispObject = new GameObject ("disp");
-				dispObject.transform.parent = mapObject.transform;
+				dispObject = new GameObject ("displacements");
+				dispObject.transform.SetParent( mapObject.transform );
 			}
 
 			if(uSrcSettings.Inst.props)
 			{
 				propsObject = new GameObject ("props");
-				propsObject.transform.parent = mapObject.transform;
+				propsObject.transform.SetParent( mapObject.transform );
+				propsObject.isStatic = true;
 			}
 
 			switch(LoadType)
@@ -87,8 +100,14 @@ namespace uSrcTools
 				Debug.Log ("Start Loading World Faces");
 
 				if(uSrcSettings.Inst.lightmaps&map.hasLightmaps)
+				{
 					lightmapsData = new List<LightmapData>();
-
+					curLightmap = 0;
+					lm_allocated = new int[BLOCK_SIZE];
+					LM_InitBlock();
+				}
+				
+				models = new GameObject[map.modelsLump.Length];
 				for (int i=0; i<map.modelsLump.Length; i++) 
 				{
 					CreateModelObject(i);
@@ -96,11 +115,13 @@ namespace uSrcTools
 
 				if(uSrcSettings.Inst.lightmaps&map.hasLightmaps)
 				{
+					LM_UploadBlock();
 					Debug.Log ("Loading "+lightmapsData.Count+" lightmap pages");
 					LightmapSettings.lightmaps = lightmapsData.ToArray();
+					lm_allocated = null;
 				}
-
 				Debug.Log("Finish World Faces");
+				GC.Collect();
 
 				if(uSrcSettings.Inst.entities)
 				{
@@ -182,11 +203,11 @@ namespace uSrcTools
 			case Type.WithoutBatching:
 				for (int i=0; i<map.modelsLump.Length; i++) 
 				{
-					Models.Add(new GameObject("*"+i));
-					Models[i].transform.SetParent( modelsObject.transform);
+					models[i] = new GameObject("*"+i);
+					models[i].transform.SetParent( modelsObject.transform);
 					for (int f=map.modelsLump[i].firstface; f<map.modelsLump[i].firstface+map.modelsLump[i].numfaces; f++) 
 					{
-						GenerateFaceObject(f).transform.SetParent(Models[i].transform);
+						GenerateFaceObject(f).transform.SetParent(models[i].transform);
 					}
 				}
 				break;
@@ -218,10 +239,12 @@ namespace uSrcTools
 			}
 
 			BR.BaseStream.Dispose ();
+			GC.Collect();
 		}
 		 
 		void ParseEntities(string input)
 		{
+			entities = new List<string>();
 			string pattern = @"{[^}]*}";
 			foreach(Match match in Regex.Matches (input,pattern,RegexOptions.IgnoreCase))
 			{
@@ -250,7 +273,7 @@ namespace uSrcTools
 			if(data[0]=="model")
 			{
 				int modelIndex=int.Parse(data[data.FindIndex(n=>n=="model")+1].Substring(1));
-				GameObject obj = Models[modelIndex];
+				GameObject obj = models[modelIndex];
 				
 				if(data.Contains ("origin"))
 				{
@@ -434,274 +457,205 @@ namespace uSrcTools
 		}
 
 //==================================================================================================
-		int curLightmap = 0;
-		public void CreateModelObject(int index)
+
+		void CreateModelObject(int index)
 		{
 			int numFaces = map.modelsLump[index].numfaces;
 			int firstFace = map.modelsLump[index].firstface;
+			int numVerts = 0;
+			int numInds = 0;
 
 			GameObject model = new GameObject ("*" + index);
-			Models.Add (model);
-			model.transform.SetParent( modelsObject.transform);
+			models[index] = model;
+			model.transform.SetParent(modelsObject.transform);
 			model.isStatic = true;
 
-			if(numFaces==0)
+			if(numFaces == 0)
 			{
 				return;
 			}
 
 			if(uSrcSettings.Inst.lightmaps && map.hasLightmaps)
-				model.layer=8;
+				model.layer = 8;
 
 			bspface face;
-			bsptexdata texdata;
-			int flags;
-
-			if(uSrcSettings.Inst.textures)
-			{
-				for (int i = firstFace; i < firstFace + numFaces; i++) 
-				{
-					face = map.facesLump[i];
-					texdata = map.texdataLump[map.texinfosLump[face.texinfo].texdata];
-					if(texdata.faces==null)
-					{
-						if(Test.Inst.skipSky&(map.texinfosLump[face.texinfo].flags & SourceBSPStructs.SURF_SKY) != 0)
-							continue;
-						else
-							texdata.faces=new List<int>();
-
-					}
-
-					if(face.dispinfo==-1)
-					{
-						texdata.faces.Add(i);
-						texdata.numvertices+=face.numedges;
-					}
-				}
-			}
+			bsptexinfo ti;
+			int i=0;
 
 
-			Texture2D  modelLightmap = null;
-			List<Texture2D> tempLightmaps=null;
-			if (uSrcSettings.Inst.lightmaps&&map.hasLightmaps&&curLightmap<255) 
-			{
-				tempLightmaps = new List<Texture2D>();
-				modelLightmap = new Texture2D(64,64,TextureFormat.RGB24,true,true);
-			}
-
-			//int numlightfaces = numFaces;
 			if (!uSrcSettings.Inst.textures) 
 			{
-				List<Vector3> verts=new List<Vector3>();
-				List<Vector2> UVs=new List<Vector2>();
-				List<Vector2> UV2s=new List<Vector2>();
-				List<int> tris = new List<int>();
-
-				int pointOffs=0;
-
-				for (int i = firstFace; i < firstFace + numFaces; i++) 
+				for (i = firstFace; i < firstFace + numFaces; i++) 
 				{
-					surface surf = BuildFace (i);
-
-					if ((Test.Inst.skipSky&(surf.texFlags & SourceBSPStructs.SURF_SKY) != 0)|surf.dispinfo!=-1)
+					face = map.facesLump[i];
+					ti = map.texinfosLump[face.texinfo];
+					if(Test.Inst.skipSky&&(ti.flags & SourceBSPStructs.SURF_SKY)!=0||face.dispinfo!=-1)
 						continue;
-					
-					pointOffs = verts.Count;
-
-					verts.AddRange (surf.points);
-					UVs.AddRange (surf.uv);
-					UV2s.AddRange (surf.uv2);
-
-					for (int j = 0; j < surf.triangles.Length; j++) 
+					if(numVerts+face.numedges>65000)
 					{
-						tris.Add (surf.triangles [j] + pointOffs);
+						break;
 					}
-
-					if (uSrcSettings.Inst.lightmaps&&map.hasLightmaps&&curLightmap<255&&(surf.texFlags & SourceBSPStructs.SURF_NOLIGHT) == 0)
-					{
-						tempLightmaps.Add(CreateLightmapTex (surf));
-						if(tempLightmaps.Last()==null)
-						{
-							Debug.Log("Face "+i+" haven't lightmap. Model "+index+". Flags "+surf.texFlags );
-						}
-					}
+					numVerts += face.numedges;
+					numInds += (face.numedges-2)*3;
 				}
-
-				Rect[] offsets = null;
-				if(uSrcSettings.Inst.lightmaps&&map.hasLightmaps&&curLightmap<255)
+				if(i<firstFace+numFaces)
 				{
-					offsets = modelLightmap.PackTextures (tempLightmaps.ToArray(),1);
-
-					for(int i=0;i<tempLightmaps.Count;i++)
-					{
-						Destroy(tempLightmaps[i]);
-					}
-					tempLightmaps.Clear();
+					Debug.LogWarning("skipped "+(firstFace+numFaces-i)+" faces. Load "+numVerts+" verts");
+					numFaces = i-firstFace;
 				}
-				tempLightmaps = null;
+				//Debug.Log ("CreateModelObject "+index+" numVerts "+numVerts);
 
-				if(uSrcSettings.Inst.lightmaps&&map.hasLightmaps&&curLightmap<255)
+
+				Vector3[] verts = new Vector3[numVerts];
+				Vector2[] UVs = new Vector2[numVerts];
+				Vector2[] UV2s = new Vector2[numVerts];
+				int[] tris = new int[numInds];
+
+				int vertOffs = 0;
+				int indsOffs = 0;
+				for (i = firstFace; i < firstFace + numFaces; i++) 
 				{
-					int curVert=0;
-					int curRect=0;
+					face = map.facesLump[i];
+					ti = map.texinfosLump[face.texinfo];
+					if ((Test.Inst.skipSky&&(ti.flags & SourceBSPStructs.SURF_SKY) != 0)||face.dispinfo!=-1)
+						continue;
 
-					//Debug.Log ("Offsets count "+offsets.Length);
-
-					for(int i = 0; i < numFaces; i++)
+					if(BuildFace(i, ref verts, ref UVs, ref UV2s, ref tris, vertOffs, indsOffs))
 					{
-						face = map.facesLump[i+firstFace];
-						flags = map.texinfosLump [face.texinfo].flags;
-						if ((Test.Inst.skipSky&((flags & SourceBSPStructs.SURF_SKY) != 0))|face.dispinfo!=-1)
-							continue;
-
-						int numVerts = map.facesLump[firstFace+i].numedges;
-
-						if((flags & SourceBSPStructs.SURF_NOLIGHT) != 0)
-						{
-							curVert+=numVerts;
-							continue;
-						}
-
-						Rect offs=offsets[curRect];
-
-						for(int v=curVert; v<curVert+numVerts; v++)
-						{	
-							//if(i<maxLMs)
-							//{
-								Vector2 tempUV = UV2s[v];
-								UV2s[v] = new Vector2((tempUV.x*offs.width)+offs.x, (tempUV.y*offs.height)+offs.y);
-							//}
-							//else
-							//	UV2s[v] = new Vector2(0.9f,0.9f);
-
-						}
-						curVert+=numVerts;
-						curRect++;
+						vertOffs += face.numedges;
+						indsOffs += (face.numedges-2)*3;
 					}
+					else
+					{
+					/*	GameObject subGO = new GameObject("lm"+curLightmap);
+						subGO.transform.SetParent(model.transform);
+						subGO.isStatic = true;
+						MeshRenderer subMR = subGO.AddComponent<MeshRenderer>();
+						subMR.material = Test.Inst.testMaterial;
+						MeshFilter subMF = model.AddComponent<MeshFilter>();
+						subMF.sharedMesh = new Mesh();
+						subMF.sharedMesh.name = "lm"+curLightmap;
+						subMF.sharedMesh.vertices = verts;
+						subMF.sharedMesh.triangles = tris;
+						subMF.sharedMesh.uv = UVs;
+						subMF.sharedMesh.uv2 = UV2s;
+						subMR.lightmapIndex = curLightmap;
+						subMF.sharedMesh.RecalculateNormals ();
 
-					lightmapsData.Add( new LightmapData(){lightmapFar=modelLightmap });
+						LM_UploadBlock();
+						LM_InitBlock();*/
+					}
 				}
-				
 				
 				MeshRenderer mr = model.AddComponent<MeshRenderer>();
 				mr.material = Test.Inst.testMaterial;
 				
 				MeshFilter mf = model.AddComponent<MeshFilter>();
-				
-				mf.mesh = new Mesh();
-				mf.mesh.name = "BSPModel_"+index;
-				mf.mesh.vertices=verts.ToArray ();
-				mf.mesh.triangles=tris.ToArray ();
-				mf.mesh.uv=UVs.ToArray ();
+				mf.sharedMesh = new Mesh();
+				mf.sharedMesh.name = "BSPModel_"+index;
+				mf.sharedMesh.vertices = verts;
+				mf.sharedMesh.triangles = tris;
+				mf.sharedMesh.uv = UVs;
 				if(uSrcSettings.Inst.lightmaps&&map.hasLightmaps&&curLightmap<255)
 				{
-					mf.mesh.uv2=UV2s.ToArray ();
+					mf.sharedMesh.uv2 = UV2s;
 					mr.lightmapIndex = curLightmap;
-					curLightmap++;
-					if(curLightmap>255)
-						curLightmap=255;
-					//mr.lightmapIndex=lightmapsData.Count-1;[
 				}
 
-				mf.mesh.RecalculateNormals ();
+				mf.sharedMesh.RecalculateNormals ();
 				
 				if(uSrcSettings.Inst.genColliders)
 				{
 					model.AddComponent<MeshCollider>();
 				}
-				
+
+				if(!uSrcSettings.Inst.showTriggers)
+				{
+					string materialName = ConvertUtils.GetNullTerminatedString(map.texdataStringDataLump,map.texdataStringTableLump [map.texdataLump[ti.texdata].nameStringTableID]);
+					materialName = materialName.ToLower ();
+					if((materialName.Contains("trigger")||materialName.Contains("fogvolume"))&&!uSrcSettings.Inst.showTriggers)
+					{
+						model.SetActive(false);
+					}
+				}
 			}
 			else 
 			{
-				List<Mesh> texMeshes=new List<Mesh>();
+				bsptexdata texdata;
+				List<int>[] materialFaces = null;
 
-				for(int i=0;i<map.texdataLump.Length;i++)
+				materialFaces = new List<int>[map.texdataLump.Length];
+				for (i = firstFace; i < firstFace + numFaces; i++) 
 				{
-					texdata=map.texdataLump[i];
-
-					if(texdata.faces==null)
+					face = map.facesLump[i];
+					ti = map.texinfosLump[face.texinfo];
+					texdata = map.texdataLump[ti.texdata];
+					if(Test.Inst.skipSky&&(ti.flags & SourceBSPStructs.SURF_SKY)!=0||face.dispinfo!=-1)
+						continue;
+					
+					if(materialFaces[ti.texdata] == null)
 					{
-						//Debug.Log("TexData "+i+" has no faces");
+						materialFaces[ti.texdata] = new List<int>();
+					}
+					materialFaces[ti.texdata].Add(i);
+					texdata.numVerts += face.numedges;
+					texdata.numInds += (face.numedges-2)*3;
+				}
+
+				for(i=0; i<map.texdataLump.Length; i++)
+				{
+					if(materialFaces[i]==null)
+					{
 						continue;
 					}
+					texdata = map.texdataLump[i];
 
-					List<Vector3> verts=new List<Vector3>();
-					List<Vector2> UVs=new List<Vector2>();
-					List<Vector2> UV2s=new List<Vector2>();
-					List<int> tris = new List<int>();
+					Vector3[] verts = new Vector3[texdata.numVerts];
+					Vector2[] UVs = new Vector2[texdata.numVerts];
+					Vector2[] UV2s = new Vector2[texdata.numVerts];
+					int[] tris = new int[texdata.numInds];
 
-					for(int j=0;j<texdata.faces.Count;j++)
+					int vertOffs = 0;
+					int indsOffs = 0;
+					for(int j=0; j<materialFaces[i].Count(); j++)
 					{
-						face=map.facesLump[texdata.faces[j]];
+						face = map.facesLump[materialFaces[i][j]];
 
-						surface surf=BuildFace(texdata.faces[j]);
-
-						//if ((f.flags & 1024) != 0)
-							//numlightfaces--;
-
-						int pointOffs = verts.Count;
-						for (int t = 0; t < surf.triangles.Length; t++)
+						if(!BuildFace (materialFaces[i][j], ref verts, ref UVs, ref UV2s, ref tris, vertOffs, indsOffs))
 						{
-							tris.Add (surf.triangles [t] + pointOffs);
+							LM_UploadBlock();
+							LM_InitBlock();
+							BuildFace (materialFaces[i][j], ref verts, ref UVs, ref UV2s, ref tris, vertOffs, indsOffs);
 						}
-						
-						verts.AddRange (surf.points);
-						UVs.AddRange (surf.uv);
-						if(uSrcSettings.Inst.lightmaps&&map.hasLightmaps&&curLightmap<255)
-						{	
-							UV2s.AddRange (surf.uv2);
-
-							if (j < maxLMs)
-								tempLightmaps.Add(CreateLightmapTex (surf));
-						}
+						vertOffs += face.numedges;
+						indsOffs += (face.numedges-2)*3;
 					}
 
-					string materialName = "";
-					if (map.texdataStringDataLump.Length > map.texdataStringTableLump [texdata.nameStringTableID] + 92)
-						materialName = new string (map.texdataStringDataLump, map.texdataStringTableLump [texdata.nameStringTableID], 92);
-					else
-						materialName = new string (map.texdataStringDataLump, map.texdataStringTableLump [texdata.nameStringTableID], map.texdataStringDataLump.Length - map.texdataStringTableLump [texdata.nameStringTableID]);
-					
+					string materialName = ConvertUtils.GetNullTerminatedString(map.texdataStringDataLump,map.texdataStringTableLump [texdata.nameStringTableID]);
 					materialName = materialName.ToLower ();
-					
-					if (materialName.Contains ("\0"))
-						materialName = materialName.Remove (materialName.IndexOf ('\0'));
 
-					GameObject texObj;
-					if(texdata.faces==null)
-					{
-						texObj=model;
-					}
-					else
-					{
-						texObj = new GameObject(materialName);
-						texObj.transform.SetParent(model.transform);
-					}
+					GameObject texObj = new GameObject(materialName);
+					texObj.transform.SetParent(model.transform);
 					texObj.isStatic = true;
 					if(uSrcSettings.Inst.lightmaps&&map.hasLightmaps)
-						texObj.layer=8;
+						texObj.layer = 8;
 
 					MeshRenderer mr = texObj.AddComponent<MeshRenderer>();
 					MeshFilter mf = texObj.AddComponent<MeshFilter>();
 					Mesh mesh = new Mesh();
-
-
 					mesh.name = materialName;
-					mesh.vertices = verts.ToArray();
-					mesh.uv = UVs.ToArray();
+					mesh.vertices = verts;
+					mesh.uv = UVs;
 
 					if(uSrcSettings.Inst.lightmaps&&map.hasLightmaps&&curLightmap<255)
-						mesh.uv2 = UV2s.ToArray ();
+						mesh.uv2 = UV2s;
 
-					mesh.triangles = tris.ToArray();
+					mesh.triangles = tris;
 					mesh.RecalculateNormals();
-					//mf.sharedMesh = mesh;
-					mf.mesh = mesh;
+					mf.sharedMesh = mesh;
 
-					texMeshes.Add(mf.sharedMesh);
-
-					Material tempmat = ResourceManager.Inst.GetMaterial (materialName);
-					mr.material = tempmat;
+					Material mat = ResourceManager.Inst.GetMaterial (materialName);
+					mr.material = mat;
 
 					if(uSrcSettings.Inst.lightmaps&&map.hasLightmaps&&curLightmap<255)
 					{
@@ -716,96 +670,15 @@ namespace uSrcTools
 					{
 						texObj.AddComponent<MeshCollider>();
 					}
-
 				}
 
-				//if(texMeshes.Count>0)
-				//	Debug.Log ("First Mesh is "+texMeshes[0].name);
-
-				Rect[] offsets = null;
-				if(uSrcSettings.Inst.lightmaps&&map.hasLightmaps&&curLightmap<255)
+				for(int t=0; t<map.texdataLump.Length; t++)
 				{
-					offsets = modelLightmap.PackTextures (tempLightmaps.ToArray(), 1);
-					//Debug.Log ("tempLightmaps count "+tempLightmaps.Count);
+					texdata = map.texdataLump[t];
 
-					for(int l=0; l<tempLightmaps.Count; l++)
-					{
-						Destroy(tempLightmaps[l]);
-					}
-					tempLightmaps.Clear();
-
-					int curMesh = 0;
-					int curVert = 0;
-					int numVerts = 0;
-					int curRect=0;
-
-					for(int t=0;t<map.texdataLump.Length;t++)
-					{
-						texdata = map.texdataLump[t];
-
-						if(texdata.faces==null)
-							continue;
-
-						Mesh mesh = texMeshes[curMesh];
-						curMesh++;
-						Vector2[] uv2 = mesh.uv2;
-
-						//flags=map.texinfosLump [face.texinfo].flags;
-
-						for(int f=0; f<texdata.faces.Count; f++)
-						{
-							if(curRect>offsets.Length)
-							{
-								Debug.Log ("curent offset("+curRect+") > offsets count");
-								break;
-							}
-
-							if(curVert>uv2.Length)
-							{
-								Debug.Log ("vert index > uv2 count");
-								break;
-							}
-
-							face = map.facesLump[texdata.faces[f]];
-							numVerts = face.numedges;
-							Rect offs = offsets[curRect];
-							curRect++;
-							for(int v=curVert; v<curVert+numVerts; v++)
-							{	
-								Vector2 tempUV = uv2[v];
-								uv2[v] = new Vector2((tempUV.x*offs.width)+offs.x, (tempUV.y*offs.height)+offs.y);
-							}
-							curVert+=numVerts;
-						}
-						curVert=0;
-						mesh.uv2 = uv2;
-
-					
-						texdata.faces.Clear();
-						texdata.faces=null;
-					}
-
-					lightmapsData.Add( new LightmapData(){lightmapFar=modelLightmap });
-					curLightmap++;
-					if(curLightmap>255)
-						curLightmap=255;
+					texdata.numVerts = 0;
+					texdata.numInds = 0;
 				}
-				else
-				{
-					for(int t=0;t<map.texdataLump.Length;t++)
-					{
-						texdata = map.texdataLump[t];
-						
-						if(texdata.faces==null)
-							continue;
-
-						texdata.faces.Clear();
-						texdata.faces=null;
-					}
-				}
-
-				texMeshes.Clear();
-				texMeshes=null;
 			}
 		}
 
@@ -835,11 +708,11 @@ namespace uSrcTools
 			
 			//Material mat;
 			MeshFilter mf = faceObject.AddComponent<MeshFilter>();
-			mf.mesh=new Mesh();
-			mf.mesh.name = "BSPFace "+index;
-			mf.mesh.vertices=f.points;
-			mf.mesh.triangles=f.triangles;
-			mf.mesh.uv=f.uv;
+			mf.sharedMesh=new Mesh();
+			mf.sharedMesh.name = "BSPFace "+index;
+			mf.sharedMesh.vertices=f.points;
+			mf.sharedMesh.triangles=f.triangles;
+			mf.sharedMesh.uv=f.uv;
 
 
 
@@ -889,7 +762,7 @@ namespace uSrcTools
 
 					//Texture2D lightMap = CreateLightmapTex (f);
 
-					mf.mesh.uv2 = f.uv2;
+					mf.sharedMesh.uv2 = f.uv2;
 					mr.lightmapIndex=0;
 				}
 			}
@@ -898,12 +771,12 @@ namespace uSrcTools
 				mr.material = Test.Inst.testMaterial;
 			}
 			
-			mf.mesh.RecalculateNormals ();
+			mf.sharedMesh.RecalculateNormals ();
 			//mf.mesh.RecalculateBounds ();
 
 			faceObject.transform.parent = modelsObject.transform;
 
-			mf.mesh.Optimize ();
+			mf.sharedMesh.Optimize ();
 			faceObject.isStatic = true;
 
 			return faceObject;
@@ -919,12 +792,12 @@ namespace uSrcTools
 			
 			//Material mat;
 			MeshFilter mf = faceObject.AddComponent<MeshFilter>();
-			mf.mesh = new Mesh();
-			mf.mesh.name = "DispFace "+f.index;
-			mf.mesh.vertices=f.points;
-			mf.mesh.triangles = f.triangles;
-			mf.mesh.uv=f.uv;
-			mf.mesh.colors32=f.cols;
+			mf.sharedMesh = new Mesh();
+			mf.sharedMesh.name = "DispFace "+f.index;
+			mf.sharedMesh.vertices=f.points;
+			mf.sharedMesh.triangles = f.triangles;
+			mf.sharedMesh.uv = f.uv;
+			mf.sharedMesh.colors32 = f.cols;
 
 			if (uSrcSettings.Inst.textures) 
 			{
@@ -957,10 +830,10 @@ namespace uSrcTools
 				mr.material = Test.Inst.testMaterial;
 			}
 
-			mf.mesh.RecalculateNormals ();
+			mf.sharedMesh.RecalculateNormals ();
 
 			faceObject.transform.parent = dispObject.transform;
-			mf.mesh.Optimize ();
+			mf.sharedMesh.Optimize ();
 			faceObject.isStatic = true;
 
 			if(uSrcSettings.Inst.genColliders)
@@ -988,80 +861,82 @@ namespace uSrcTools
 			public Vector2 lightmapScale;
 			public Vector2 lightmapOffset;
 		}
-		
+
 		surface BuildFace(int index)
 		{
-			List<Vector3> verts=new List<Vector3>();
-			List<Vector2> UVs=new List<Vector2>();
-			List<Vector2> UV2s=new List<Vector2>();
-			List<int> tris = new List<int>();
-
+			return new surface();//null
+		}
+		
+		bool BuildFace(int index, ref Vector3[] verts, ref Vector2[] UVs, ref Vector2[] UV2s, ref int[] tris, int vertOffs, int triOffs)
+		{
 			bspface curface = map.facesLump[index];
 			int startEdge = curface.firstedge;
 			int nEdges = curface.numedges;
+			bsptexinfo texInfo = map.texinfosLump[curface.texinfo];
 			//Debug.Log("texinfo "+curface.texinfo+"/"+map.texinfosLump.Length);
-			int tiFlags = map.texinfosLump [curface.texinfo].flags;
+			int tiFlags = texInfo.flags;
 
-			for(int i = startEdge; i<startEdge+nEdges; i++)
+			int lightmapW = curface.LightmapTextureSizeInLuxels[0]+1;
+			int lightmapH = curface.LightmapTextureSizeInLuxels[1]+1;
+			
+			int lmx = 0, lmy = 0;
+			if(uSrcSettings.Inst.lightmaps&&(tiFlags & SourceBSPStructs.SURF_NOLIGHT) == 0)
+				if(!LM_AllocBlock(lightmapW, lightmapH, out lmx, out lmy))
+				{
+					Debug.LogWarning ("LM_AllocBlock failed on face "+index);
+					return false;
+				}
+
+			for(int i = 0; i<nEdges; i++)
 			{
-				verts.Add( map.surfedgesLump[i]>0 ? 
-				          map.vertexesLump[map.edgesLump[Mathf.Abs(map.surfedgesLump[i])][0]] : 
-				          map.vertexesLump[map.edgesLump[Mathf.Abs (map.surfedgesLump[i])][1]]);
+				//verts.Add( map.surfedgesLump[i]>0 ? 
+				verts[vertOffs+i] = (map.vertexesLump[map.edgesLump[Math.Abs(map.surfedgesLump[startEdge+i])][map.surfedgesLump[startEdge+i]>0?0:1]]);
 			}
-
-			for(int i = 1; i < verts.Count - 1; i++)
+			int j = triOffs;
+			for(int i = 0; i < nEdges - 2; i++)
 			{
-				tris.Add (0);
-				tris.Add (i);
-				tris.Add (i+1);
+				tris[j] = vertOffs;
+				tris[j+1] = vertOffs+i+1;
+				tris[j+2] = vertOffs+i+2;
+				j+=3;
 			}
-
-			bsptexinfo texInfo = map.texinfosLump [map.facesLump [index].texinfo];
 
 			float scales = map.texdataLump[texInfo.texdata].width * uSrcSettings.Inst.worldScale;
 			float scalet = map.texdataLump[texInfo.texdata].height * uSrcSettings.Inst.worldScale;
 			
-			for(int i = 0; i < verts.Count; i++)
+			for(int i = 0; i < nEdges; i++)
 			{
-				float tU = Vector3.Dot(verts[i] * uSrcSettings.Inst.worldScale, texInfo.texvecs) + (texInfo.texoffs * uSrcSettings.Inst.worldScale);
-				float tV = Vector3.Dot(verts[i] * uSrcSettings.Inst.worldScale, texInfo.texvect) + (texInfo.texofft * uSrcSettings.Inst.worldScale);
-				UVs.Add( new Vector2(tU / scales, tV / scalet));
+				float tU = Vector3.Dot(verts[vertOffs+i] * uSrcSettings.Inst.worldScale, texInfo.texvecs) + (texInfo.texoffs * uSrcSettings.Inst.worldScale);
+				float tV = Vector3.Dot(verts[vertOffs+i] * uSrcSettings.Inst.worldScale, texInfo.texvect) + (texInfo.texofft * uSrcSettings.Inst.worldScale);
+				UVs[vertOffs+i] = new Vector2(tU / scales, tV / scalet);
 			}
 
-			int lightmapW = (map.facesLump[index].LightmapTextureSizeInLuxels[0]+1);
-			int lightmapH = (map.facesLump[index].LightmapTextureSizeInLuxels[1]+1);
-
-			for (int i=0; i<verts.Count; i++) 
+			for (int i=0; i<nEdges; i++) 
 			{
-				float U = Vector3.Dot(verts[i],texInfo.lightvecs) + texInfo.lightoffs+0.5f - map.facesLump[index].LightmapTextureMinsInLuxels[0];
-				float V = Vector3.Dot(verts[i],texInfo.lightvect) + texInfo.lightofft+0.5f - map.facesLump[index].LightmapTextureMinsInLuxels[1];
-				//U=(U*(float)((float)lightmapW/((float)lightmapW+2f)))+(1f/((float)lightmapW+2f));
-				//V=(V*(float)((float)lightmapH/((float)lightmapH+2f)))+(1f/((float)lightmapH+2f));
-				UV2s.Add (new Vector2(U/(lightmapW), V/(lightmapH)));
+				float U, V;
+				if((tiFlags & SourceBSPStructs.SURF_NOLIGHT) == 0)
+				{
+					U = Vector3.Dot(verts[vertOffs+i],texInfo.lightvecs) + texInfo.lightoffs+0.5f - curface.LightmapTextureMinsInLuxels[0]+lmx;
+					V = Vector3.Dot(verts[vertOffs+i],texInfo.lightvect) + texInfo.lightofft+0.5f - curface.LightmapTextureMinsInLuxels[1]+lmy;
+				}
+				else
+				{
+					U = BLOCK_SIZE-2;
+					V = BLOCK_SIZE-2;
+				}
+
+				UV2s[vertOffs+i] = new Vector2(U/BLOCK_SIZE, V/BLOCK_SIZE);
 			}
 
-			for(int i=0;i<verts.Count;i++)
+			for(int i=0; i<nEdges; i++)
 			{
-				verts[i] *= uSrcSettings.Inst.worldScale;
+				verts[vertOffs+i] *= uSrcSettings.Inst.worldScale;
 			}
 
-			int texID = map.texdataLump [map.texinfosLump [map.facesLump [index].texinfo].texdata].nameStringTableID;
+			if(uSrcSettings.Inst.lightmaps&&(tiFlags & SourceBSPStructs.SURF_NOLIGHT) == 0)
+				CreateLightmapTex(lightmapW,lightmapH,lmx,lmy,index);
 
-			surface f = new surface ();
-			f.index = index;
-			f.texFlags = tiFlags;
-			f.texID = texID;
-			f.dispinfo=curface.dispinfo;
-
-			f.points = verts.ToArray ();
-			f.uv = UVs.ToArray ();
-			f.uv2 = UV2s.ToArray ();
-			f.triangles = tris.ToArray ();
-
-			f.lightMapW = lightmapW;
-			f.lightMapH = lightmapH;
-			
-			return f;
+			return true;
 		}
 
 		surface BuildDispFace(int faceIndex, int model, short dispinfoId)
@@ -1233,51 +1108,95 @@ namespace uSrcTools
 			return f;
 		}
 
+
 		Texture2D CreateLightmapTex(surface f)
 		{
-			int rowColors=f.lightMapW;
-			Texture2D tex = new Texture2D (f.lightMapW, f.lightMapH, TextureFormat.RGB24, false,true);
-			//tex.filterMode = FilterMode.Point;
-			Color32[] colors = new Color32[(f.lightMapW) * (f.lightMapH)];
+			return null;
+		}
 
-			int Offset = map.facesLump [f.index].lightofs/4;
-
-			if(map.facesLump [f.index].lightofs<0 | map.lightingLump.Length == 0)
-				return null;
-
-			int o = 0;
-			int j = 0;
-			for(int y=0; y<f.lightMapH; y++)
+		void CreateLightmapTex(int w, int h, int lx, int ly, int i)
+		{
+			if(map.facesLump [i].lightofs == -1 || map.lightingLump.Length == 0)
 			{
-				o=(rowColors*(y));
-				for(int x=0; x<f.lightMapW; x++)
+				Debug.LogWarning("Face "+i+" haven't lightmap. Flags "+map.texinfosLump[map.facesLump[i].texinfo].flags );
+				return;
+			}
+			//Texture2D tex = new Texture2D (f.lightMapW, f.lightMapH, TextureFormat.RGB24, false,true);
+			//tex.filterMode = FilterMode.Point;
+			//Color32[] colors = new Color32[w * h];
+			Color[] colors = new Color[w * h];
+
+			int Offset = map.facesLump [i].lightofs/4;
+
+			for(int y=0; y<h; y++)
+			{
+				for(int x=0; x<w; x++)
 				{
-					colors[o++]=map.lightingLump[Offset + j++];
+					Color32 col = map.lightingLump[Offset + w*y+x];
+					colors[w*y+x] = new Color(col.r/255.0f,col.g/255.0f,col.b/255.0f,col.a/255.0f);
 				}
 			}
-			//=======fill borders================
-			/*
-			for(int y=0; y<f.lightMapH+1;y++)
-			{
-				o=rowColors * y;
-				colors[o] = colors[o+1];
-				
-				o=(rowColors * (y+1))-1;
-				colors[o] = colors[o-1];
-			}
-			
-			int end=(f.lightMapW+2)*(f.lightMapH+2);
-			for(int x=0; x<f.lightMapW+2;x++)
-			{
-				colors[x] = colors[x+rowColors];
-				colors[(end-rowColors)+x] = colors[(end-(rowColors*2)+x)];
-			}
-			*/
-			//=====================================
 
-			tex.SetPixels32 (colors);
-			tex.Apply ();
-			return tex;
+			//tex.SetPixels32 (colors);
+			//tex.Apply ();
+			//return tex;
+
+			curLightmapTex.SetPixels(lx,ly,w,h,colors);
+		}
+
+		void LM_InitBlock()
+		{
+			if(lm_allocated==null)
+				return;
+			for(int i=0;i<BLOCK_SIZE;i++)
+			{
+				lm_allocated[i]=0;
+			}
+			curLightmapTex = new Texture2D(BLOCK_SIZE,BLOCK_SIZE,TextureFormat.RGB24,false,true);
+		}
+
+		bool LM_AllocBlock(int w, int h, out int x, out int y)
+		{
+			int i, j, best2;
+			int best = BLOCK_SIZE;
+
+			x = y = 0;
+
+			for(i=0; i<BLOCK_SIZE-w; i++)
+			{
+				best2 = 0;
+
+				for(j=0; j<w; j++)
+				{
+					if(lm_allocated[i+j] >= best)
+						break;
+					if(lm_allocated[i+j] > best2)
+						best2 = lm_allocated[i+j];
+				}
+
+				if(j == w)
+				{
+					x = i;
+					y = best = best2;
+				}
+			}
+
+			if(best+h > BLOCK_SIZE)
+				return false;
+
+			for(i=0; i<w; i++)
+				lm_allocated[x+i] = best+h;
+
+			return true;
+		}
+
+		void LM_UploadBlock()
+		{
+			Debug.Log ("Upload lightmap block "+curLightmap);
+			curLightmapTex.Apply();
+			lightmapsData.Add( new LightmapData(){lightmapFar = curLightmapTex});
+			curLightmapTex = null;
+			curLightmap++;
 		}
 	}
 }

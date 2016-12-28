@@ -83,7 +83,7 @@ namespace uSrcTools
 	[Serializable]
 	public struct bspheader
 	{
-		public int ident; public string magic;
+		public int ident;
 		public int version;
 		public bsplump[] lumps;
 		public int mapRevision;
@@ -228,9 +228,9 @@ namespace uSrcTools
 		public int	height;		// source image
 		public int	view_width;
 		public int  view_height;
-		
-		public List<int> faces;
-		public int numvertices;
+
+		public int numVerts;
+		public int numInds;
 	}//32 bytes
 
 	[Serializable]
