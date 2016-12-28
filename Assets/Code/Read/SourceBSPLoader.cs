@@ -95,7 +95,10 @@ namespace uSrcTools
 				}
 
 				if(uSrcSettings.Inst.lightmaps&map.hasLightmaps)
+				{
+					Debug.Log ("Loading "+lightmapsData.Count+" lightmap pages");
 					LightmapSettings.lightmaps = lightmapsData.ToArray();
+				}
 
 				Debug.Log("Finish World Faces");
 
@@ -145,20 +148,20 @@ namespace uSrcTools
 						//Debug.Log ("static prop "+i+" model name is "+modelName);
 						GameObject go = new GameObject();
 						//GameObject go = GameObject.CreatePrimitive(PrimitiveType.Cube);
-						go.name="prop "+modelName;
+						go.name = "prop "+modelName;
 						go.transform.parent=propsObject.transform;
 
 						//GameObject testGo = (GameObject)MonoBehaviour.Instantiate(TempProp) as GameObject;
 						//testGo.transform.parent=go.transform;
 
-						go.transform.position=prop.Origin;
-						go.transform.rotation=Quaternion.Euler(prop.Angles);
+						go.transform.position = prop.Origin;
+						go.transform.rotation = Quaternion.Euler(prop.Angles);
 
 
 						SourceStudioModel tempModel = ResourceManager.Inst.GetModel(modelName);
-						if(tempModel==null)
+						if(tempModel == null)
 						{
-							Debug.LogWarning("Error loading: "+modelName);
+							//Debug.LogWarning("Error loading: "+modelName);
 							GameObject prim = GameObject.CreatePrimitive(PrimitiveType.Cube);
 							prim.transform.parent=go.transform;
 							prim.transform.localPosition=Vector3.zero;
@@ -168,7 +171,7 @@ namespace uSrcTools
 							tempModel.GetInstance(go,false,0);
 						}
 
-						go.isStatic=true;
+						go.isStatic = true;
 						Props.Add(go);
 
 					}
@@ -384,7 +387,7 @@ namespace uSrcTools
 					SourceStudioModel tempModel = ResourceManager.Inst.GetModel(modelName);
 					if(tempModel==null||!tempModel.loaded)
 					{
-						Debug.LogWarning("Error loading: "+modelName);
+						//Debug.LogWarning("Error loading: "+modelName);
 						GameObject prim = GameObject.CreatePrimitive(PrimitiveType.Cube);
 						prim.name=modelName;
 						prim.transform.parent=obj.transform;
@@ -431,7 +434,7 @@ namespace uSrcTools
 		}
 
 //==================================================================================================
-		int curLightmap=0;
+		int curLightmap = 0;
 		public void CreateModelObject(int index)
 		{
 			int numFaces = map.modelsLump[index].numfaces;
@@ -442,13 +445,13 @@ namespace uSrcTools
 			model.transform.SetParent( modelsObject.transform);
 			model.isStatic = true;
 
-			if(uSrcSettings.Inst.lightmaps && map.hasLightmaps)
-				model.layer=8;
-
 			if(numFaces==0)
 			{
 				return;
 			}
+
+			if(uSrcSettings.Inst.lightmaps && map.hasLightmaps)
+				model.layer=8;
 
 			bspface face;
 			bsptexdata texdata;
@@ -480,7 +483,7 @@ namespace uSrcTools
 
 			Texture2D  modelLightmap = null;
 			List<Texture2D> tempLightmaps=null;
-			if (uSrcSettings.Inst.lightmaps&&map.hasLightmaps) 
+			if (uSrcSettings.Inst.lightmaps&&map.hasLightmaps&&curLightmap<255) 
 			{
 				tempLightmaps = new List<Texture2D>();
 				modelLightmap = new Texture2D(64,64,TextureFormat.RGB24,true,true);
@@ -500,7 +503,7 @@ namespace uSrcTools
 				{
 					surface surf = BuildFace (i);
 
-					if ((Test.Inst.skipSky&(surf.flags & SourceBSPStructs.SURF_SKY) != 0)|surf.dispinfo!=-1)
+					if ((Test.Inst.skipSky&(surf.texFlags & SourceBSPStructs.SURF_SKY) != 0)|surf.dispinfo!=-1)
 						continue;
 					
 					pointOffs = verts.Count;
@@ -514,18 +517,18 @@ namespace uSrcTools
 						tris.Add (surf.triangles [j] + pointOffs);
 					}
 
-					if (uSrcSettings.Inst.lightmaps&&map.hasLightmaps&&(surf.flags & SourceBSPStructs.SURF_NOLIGHT) == 0)
+					if (uSrcSettings.Inst.lightmaps&&map.hasLightmaps&&curLightmap<255&&(surf.texFlags & SourceBSPStructs.SURF_NOLIGHT) == 0)
 					{
 						tempLightmaps.Add(CreateLightmapTex (surf));
 						if(tempLightmaps.Last()==null)
 						{
-							Debug.Log("Face "+i+" haven't lightmap. Model "+index+". Flags "+surf.flags );
+							Debug.Log("Face "+i+" haven't lightmap. Model "+index+". Flags "+surf.texFlags );
 						}
 					}
 				}
 
 				Rect[] offsets = null;
-				if(uSrcSettings.Inst.lightmaps&&map.hasLightmaps)
+				if(uSrcSettings.Inst.lightmaps&&map.hasLightmaps&&curLightmap<255)
 				{
 					offsets = modelLightmap.PackTextures (tempLightmaps.ToArray(),1);
 
@@ -537,12 +540,12 @@ namespace uSrcTools
 				}
 				tempLightmaps = null;
 
-				if(uSrcSettings.Inst.lightmaps&&map.hasLightmaps)
+				if(uSrcSettings.Inst.lightmaps&&map.hasLightmaps&&curLightmap<255)
 				{
 					int curVert=0;
 					int curRect=0;
 
-					Debug.Log ("Offsets count "+offsets.Length);
+					//Debug.Log ("Offsets count "+offsets.Length);
 
 					for(int i = 0; i < numFaces; i++)
 					{
@@ -581,14 +584,6 @@ namespace uSrcTools
 				
 				
 				MeshRenderer mr = model.AddComponent<MeshRenderer>();
-				if(uSrcSettings.Inst.lightmaps&&map.hasLightmaps)
-				{
-					mr.lightmapIndex=curLightmap;
-					curLightmap++;
-					if(curLightmap>255)
-						curLightmap=255;
-					//mr.lightmapIndex=lightmapsData.Count-1;[
-				}
 				mr.material = Test.Inst.testMaterial;
 				
 				MeshFilter mf = model.AddComponent<MeshFilter>();
@@ -598,9 +593,16 @@ namespace uSrcTools
 				mf.mesh.vertices=verts.ToArray ();
 				mf.mesh.triangles=tris.ToArray ();
 				mf.mesh.uv=UVs.ToArray ();
-				if(uSrcSettings.Inst.lightmaps&&map.hasLightmaps)
+				if(uSrcSettings.Inst.lightmaps&&map.hasLightmaps&&curLightmap<255)
+				{
 					mf.mesh.uv2=UV2s.ToArray ();
-				
+					mr.lightmapIndex = curLightmap;
+					curLightmap++;
+					if(curLightmap>255)
+						curLightmap=255;
+					//mr.lightmapIndex=lightmapsData.Count-1;[
+				}
+
 				mf.mesh.RecalculateNormals ();
 				
 				if(uSrcSettings.Inst.genColliders)
@@ -645,14 +647,10 @@ namespace uSrcTools
 						
 						verts.AddRange (surf.points);
 						UVs.AddRange (surf.uv);
-						if(uSrcSettings.Inst.lightmaps&&map.hasLightmaps)
+						if(uSrcSettings.Inst.lightmaps&&map.hasLightmaps&&curLightmap<255)
+						{	
 							UV2s.AddRange (surf.uv2);
 
-						//	if (i < firstFace + maxLMs)
-						//		tempLightmaps [i - firstFace] = CreateLightmapTex (f);
-
-						if (uSrcSettings.Inst.lightmaps&&map.hasLightmaps) 
-						{ 
 							if (j < maxLMs)
 								tempLightmaps.Add(CreateLightmapTex (surf));
 						}
@@ -692,7 +690,7 @@ namespace uSrcTools
 					mesh.vertices = verts.ToArray();
 					mesh.uv = UVs.ToArray();
 
-					if(uSrcSettings.Inst.lightmaps&&map.hasLightmaps)
+					if(uSrcSettings.Inst.lightmaps&&map.hasLightmaps&&curLightmap<255)
 						mesh.uv2 = UV2s.ToArray ();
 
 					mesh.triangles = tris.ToArray();
@@ -705,7 +703,7 @@ namespace uSrcTools
 					Material tempmat = ResourceManager.Inst.GetMaterial (materialName);
 					mr.material = tempmat;
 
-					if(uSrcSettings.Inst.lightmaps&&map.hasLightmaps)
+					if(uSrcSettings.Inst.lightmaps&&map.hasLightmaps&&curLightmap<255)
 					{
 						mr.lightmapIndex = curLightmap;
 					}
@@ -725,7 +723,7 @@ namespace uSrcTools
 				//	Debug.Log ("First Mesh is "+texMeshes[0].name);
 
 				Rect[] offsets = null;
-				if(uSrcSettings.Inst.lightmaps&&map.hasLightmaps)
+				if(uSrcSettings.Inst.lightmaps&&map.hasLightmaps&&curLightmap<255)
 				{
 					offsets = modelLightmap.PackTextures (tempLightmaps.ToArray(), 1);
 					//Debug.Log ("tempLightmaps count "+tempLightmaps.Count);
@@ -974,7 +972,7 @@ namespace uSrcTools
 		struct surface
 		{
 			public int index;
-			public int flags;
+			public int texFlags;
 			public int texID;
 			public short dispinfo;
 			
@@ -1002,7 +1000,7 @@ namespace uSrcTools
 			int startEdge = curface.firstedge;
 			int nEdges = curface.numedges;
 			//Debug.Log("texinfo "+curface.texinfo+"/"+map.texinfosLump.Length);
-			int flags = map.texinfosLump [curface.texinfo].flags;
+			int tiFlags = map.texinfosLump [curface.texinfo].flags;
 
 			for(int i = startEdge; i<startEdge+nEdges; i++)
 			{
@@ -1051,7 +1049,7 @@ namespace uSrcTools
 
 			surface f = new surface ();
 			f.index = index;
-			f.flags = flags;
+			f.texFlags = tiFlags;
 			f.texID = texID;
 			f.dispinfo=curface.dispinfo;
 

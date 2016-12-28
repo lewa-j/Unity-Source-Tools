@@ -52,6 +52,10 @@ namespace uSrcTools
 			curModelName = ModelName;
 			if (ResourceManager.GetPath (curModelName) == null)
 				return null;
+			if (ResourceManager.GetPath (curModelName.Replace (".mdl", ".vvd")) == null)
+				return null;
+			if (ResourceManager.GetPath (curModelName.Replace (".mdl", ".dx90.vtx")) == null)
+				return null;
 
 			//studiobodypart[] mdlBodyParts;
 			if(!ParseMdl (curModelName))
@@ -372,31 +376,31 @@ namespace uSrcTools
 			
 			if(!used)
 			{
-			modelMesh = new Mesh ();
-			modelMesh.name = curModelName;
-			
-			modelMesh.vertices = vertArray;
-			if(modelMesh.vertices.Length==0)
-				Debug.LogWarning ("Error with model "+modelName);
-							
-			modelMesh.normals = Normals;
-			modelMesh.uv = UV;
-			modelMesh.boneWeights = boneWeights;
+				modelMesh = new Mesh ();
+				modelMesh.name = curModelName;
+				
+				modelMesh.vertices = vertArray;
+				if(modelMesh.vertices.Length==0)
+					Debug.LogWarning ("Error with model "+modelName);
+								
+				modelMesh.normals = Normals;
+				modelMesh.uv = UV;
+				modelMesh.boneWeights = boneWeights;
 
-			modelMesh.subMeshCount = submeshCount;
-			//Debug.Log ("submeshCount " + submeshCount);
-			//Debug.Log ("indexCount "+indexArray.Length);
-			//Debug.Log ("Bodypart count "+vtxBodyParts.Length);
-			int curmeshId=0;
-			int curIndexOffset = 0;
-			
-			
-			if(TempMats==null)
-				TempMats = new Material[submeshCount];
+				modelMesh.subMeshCount = submeshCount;
+				//Debug.Log ("submeshCount " + submeshCount);
+				//Debug.Log ("indexCount "+indexArray.Length);
+				//Debug.Log ("Bodypart count "+vtxBodyParts.Length);
+				int curmeshId=0;
+				int curIndexOffset = 0;
+				
+				
+				if(TempMats==null)
+					TempMats = new Material[submeshCount];
 
-			//for(int bpId=0; bpId<vtxBodyParts.Length; bpId++)
-			//{
-			int bpId=0;
+				//for(int bpId=0; bpId<vtxBodyParts.Length; bpId++)
+				//{
+				int bpId=0;
 
 				vtxBodypartHeader vtxBodyPart = vtxBodyParts[bpId];
 				studiobodypart mdlBodyPart = mdlBodyParts[bpId];
@@ -459,10 +463,10 @@ namespace uSrcTools
 					}//mesh
 				}//model
 			//}//bp
-			}
+			}//!used
 			
 			//Vector3 rot=new Vector3(-mdlBones[i].rot.x*Mathf.Rad2Deg,-mdlBones[i].rot.z*Mathf.Rad2Deg,-mdlBones[i].rot.y*Mathf.Rad2Deg);
-			Vector3 rootrot=new Vector3(0,-mdlBones[0].rot.x*Mathf.Rad2Deg,0);
+			Vector3 rootrot = new Vector3(0,-mdlBones[0].rot.x*Mathf.Rad2Deg,0);
 
 			go.transform.localEulerAngles+=rootrot;
 			
@@ -471,6 +475,7 @@ namespace uSrcTools
 			
 			modelMesh.RecalculateBounds ();
 			mr.materials = TempMats;
+			mr.lightmapIndex = 255;
 			
 			used = true;
 		}
@@ -501,11 +506,6 @@ namespace uSrcTools
 			path = ResourceManager.GetPath (name);
 
 			//mdlBodyParts = null;
-
-			if(path == null)
-			{
-				return false;
-			}
 			
 			BinaryReader BR = new BinaryReader (File.Open (path, FileMode.Open, FileAccess.Read));
 
@@ -883,25 +883,13 @@ namespace uSrcTools
 
 		public void ParseVvd(string name)
 		{
-			string path = "";
+			name = name.Replace (".mdl", ".vvd");
 
-			if (name.Contains ("models/"))
-				name = name.Replace ("models/", "");
-			
-			if (name.Contains (".mdl"))
-				name = name.Replace (".mdl", "");
-
-			path = ResourceManager.GetPath ("models/" + name + ".vvd");
+			string path = ResourceManager.GetPath (name);
 
 			//_vertArray = null;
 			//_Normals = null;
 			//_UV = null;
-
-			if(path == null)
-			{
-				//Debug.Log ("models/"+name+".vvd: Not Found");
-				return;
-			}
 			
 			BinaryReader BR = new BinaryReader (File.Open (path, FileMode.Open, FileAccess.Read));
 			
@@ -1127,23 +1115,10 @@ namespace uSrcTools
 
 		public void ParseVtx(string name)
 		{
-			string path = "";
-
-			if (name.Contains ("models/"))
-				name = name.Replace ("models/", "");
-			
-			if (name.Contains (".mdl"))
-				name = name.Replace (".mdl", "");
-
-			path = ResourceManager.GetPath ("models/" + name + ".dx90.vtx");
+			name = name.Replace (".mdl", ".dx90.vtx");
+			string path = ResourceManager.GetPath (name);
 
 			//_indexArray = null;
-
-			if(path == null)
-			{
-				//Debug.Log ("models/"+name+".mdl: Not Found");
-				return;
-			}
 			
 			BinaryReader BR = new BinaryReader (File.Open (path, FileMode.Open, FileAccess.Read));
 			

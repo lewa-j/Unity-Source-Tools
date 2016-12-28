@@ -2,6 +2,7 @@ Library/FailedAssetImports.txt
 Library/cache/
 Library/previews/
 Library/ScriptAssemblies
+Library/ShaderCache
 Library/*.log
 [Tt]emp/
 [Oo]bj/

@@ -5,7 +5,6 @@ using System.Linq;
 
 namespace uSrcTools
 {
-
 	public class Test : MonoBehaviour 
 	{
 		public static Test Inst;
