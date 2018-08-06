@@ -24,11 +24,12 @@
 
 		void surf (Input IN, inout SurfaceOutput o) 
 		{
+			//todo: seems to be broken? check this out
 			half4 c = tex2D (_MainTex, IN.uv_MainTex);
 			half4 c2 = tex2D (_MainTex2, IN.uv_MainTex);
 			float alpha=IN.color.x;
-			o.Albedo = mix(c.rgb,c2.rgb,alpha);
-			o.Alpha = mix(c.a,c2.a,alpha);
+			o.Albedo = lerp(c.rgb,c2.rgb,alpha);
+			o.Alpha = lerp(c.a,c2.a,alpha);
 		}
 		ENDCG
 	} 

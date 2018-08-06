@@ -52,7 +52,7 @@ namespace uSrcTools
 			
 			if(path==null)
 			{
-			//	Debug.Log ("materials/"+name+".vmt: Not Found");
+				Debug.Log ("materials/"+name+".vmt: Not Found");
 				return null;
 			}
 
@@ -149,7 +149,7 @@ namespace uSrcTools
 			{
 				if(parameters.ContainsKey("include"))
 				{
-					//Debug.Log (name+ " include "+parameters["include"].ToLower());
+					//Debug.Log (name+ " include "+parameters["include"].ToLower()); debug
 					material = ParseVMTFile(parameters["include"].ToLower());
 					//return ParseVMTFile(parameters["include"].ToLower());
 
@@ -161,7 +161,7 @@ namespace uSrcTools
 				}
 				else
 				{
-					Debug.LogWarning("Shader is patch but have not parameter include "+path);
+					Debug.LogWarning("Shader is patch but has no parameter include "+path);
 					for(int i=0;i<parameters.Keys.ToArray().Length;i++)
 						Debug.Log (parameters.Keys.ToArray()[i]);
 					return null;

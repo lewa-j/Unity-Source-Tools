@@ -1,15 +1,15 @@
-﻿using UnityEngine;
-using System.Text.RegularExpressions;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
+using UnityEngine;
 
 namespace uSrcTools
 {
 	[Serializable]
-	public class SourceBSPLoader : MonoBehaviour 
+	public class SourceBSPLoader : MonoBehaviour
 	{
 		public enum Type
 		{
@@ -20,7 +20,7 @@ namespace uSrcTools
 		}
 
 		public BSPFile map;
-		
+
 		public GameObject mapObject;
 		public GameObject modelsObject;
 		public GameObject propsObject;
@@ -47,19 +47,21 @@ namespace uSrcTools
 
 		public void Load (string mapName)
 		{
-			if(loaded)
+			if (loaded)
 			{
-				Debug.LogWarning("Already loaded");
+				Debug.LogWarning ("Already loaded");
 				return;
 			}
 			LevelName = mapName;
-			
+
 			string path = "";
 
 			path = ResourceManager.GetPath ("maps/" + LevelName + ".bsp");
 
-			if(path == null)
+			if (path == null)
 			{
+				print ("No map detected. Check file path.");
+				print (path);
 				return;
 			}
 
@@ -68,7 +70,7 @@ namespace uSrcTools
 			map = new BSPFile (BR, LevelName);
 			loaded = true;
 
-			if(uSrcSettings.Inst.entities)
+			if (uSrcSettings.Inst.entities)
 			{
 				ParseEntities (map.entitiesLump);
 			}
@@ -78,252 +80,265 @@ namespace uSrcTools
 			mapObject.isStatic = true;
 
 			modelsObject = new GameObject ("models");
-			modelsObject.transform.SetParent( mapObject.transform );
+			modelsObject.transform.SetParent (mapObject.transform);
 			modelsObject.isStatic = true;
 
 			if (uSrcSettings.Inst.displacements)
 			{
 				dispObject = new GameObject ("displacements");
-				dispObject.transform.SetParent( mapObject.transform );
+				dispObject.transform.SetParent (mapObject.transform);
 			}
 
-			if(uSrcSettings.Inst.props)
+			if (uSrcSettings.Inst.props)
 			{
 				propsObject = new GameObject ("props");
-				propsObject.transform.SetParent( mapObject.transform );
+				propsObject.transform.SetParent (mapObject.transform);
 				propsObject.isStatic = true;
 			}
 
-			switch(LoadType)
+			switch (LoadType)
 			{
-			case Type.Full:
-				Debug.Log ("Start Loading World Faces");
+				case Type.Full:
+					Debug.Log ("Start Loading World Faces");
 
-				if(uSrcSettings.Inst.lightmaps&map.hasLightmaps)
-				{
-					lightmapsData = new List<LightmapData>();
-					curLightmap = 0;
-					lm_allocated = new int[BLOCK_SIZE];
-					LM_InitBlock();
-				}
-				
-				models = new GameObject[map.modelsLump.Length];
-				for (int i=0; i<map.modelsLump.Length; i++) 
-				{
-					CreateModelObject(i);
-				}
-
-				if(uSrcSettings.Inst.lightmaps&map.hasLightmaps)
-				{
-					LM_UploadBlock();
-					Debug.Log ("Loading "+lightmapsData.Count+" lightmap pages");
-					LightmapSettings.lightmaps = lightmapsData.ToArray();
-					lm_allocated = null;
-				}
-				Debug.Log("Finish World Faces");
-				GC.Collect();
-
-				if(uSrcSettings.Inst.entities)
-				{
-					Debug.Log ("Start Loading Entities");
-
-					entObject=new GameObject ("entities"); 
-					entObject.transform.parent = mapObject.transform;
-
-					for(int i=0; i<entities.Count; i++)
+					if (uSrcSettings.Inst.lightmaps & map.hasLightmaps)
 					{
-						LoadEntity (i);
+						lightmapsData = new List<LightmapData> ();
+						curLightmap = 0;
+						lm_allocated = new int[BLOCK_SIZE];
+						LM_InitBlock ();
 					}
-					Debug.Log ("Finish Entities");
-				}
 
-				if(uSrcSettings.Inst.displacements)
-				{
-					for(int m=0;m<map.modelsLump.Length;m++)
+					models = new GameObject[map.modelsLump.Length];
+					for (int i = 0; i < map.modelsLump.Length; i++)
 					{
-						for(int i=map.modelsLump[m].firstface;i<map.modelsLump[m].firstface+map.modelsLump[m].numfaces;i++)
+						CreateModelObject (i);
+					}
+
+					if (uSrcSettings.Inst.lightmaps & map.hasLightmaps)
+					{
+						LM_UploadBlock ();
+						Debug.Log ("Loading " + lightmapsData.Count + " lightmap pages");
+						LightmapSettings.lightmaps = lightmapsData.ToArray ();
+						lm_allocated = null;
+					}
+					Debug.Log ("Finish World Faces");
+					GC.Collect ();
+
+					if (uSrcSettings.Inst.entities)
+					{
+						Debug.Log ("Start Loading Entities");
+
+						entObject = new GameObject ("entities");
+						entObject.transform.parent = mapObject.transform;
+
+						for (int i = 0; i < entities.Count; i++)
 						{
-							if(map.facesLump[i].dispinfo!=-1)
+							LoadEntity (i);
+						}
+						Debug.Log ("Finish Entities");
+					}
+
+					if (uSrcSettings.Inst.displacements)
+					{
+						for (int m = 0; m < map.modelsLump.Length; m++)
+						{
+							for (int i = map.modelsLump[m].firstface; i < map.modelsLump[m].firstface + map.modelsLump[m].numfaces; i++)
 							{
-								GenerateDispFaceObject(i,m);
+								if (map.facesLump[i].dispinfo != -1)
+								{
+									GenerateDispFaceObject (i, m);
+								}
 							}
 						}
+						Debug.Log ("Finish Displacements");
 					}
-					Debug.Log ("Finish Displacements");
-				}
 
-				//Static props
-				if(uSrcSettings.Inst.props && map.staticPropsReaded)
-				{
-					Debug.Log ("Start Loading Static props");
-					for(int i=0; i < map.StaticPropCount; i++)
+					//Static props
+					if (uSrcSettings.Inst.props && map.staticPropsReaded)
 					{
-						bspStaticPropLump prop = map.StaticPropLump[i];
-						//Debug.Log ("static prop "+i+" model number is ("+prop.PropType+")");
-						if(prop.PropType > map.staticPropDict.Length)
+						Debug.Log ("Start Loading Static props");
+						for (int i = 0; i < map.StaticPropCount; i++)
 						{
-							Debug.LogWarning ("Static prop "+i+" model number is ("+prop.PropType+")");
-							continue;
+							bspStaticPropLump prop = map.StaticPropLump[i];
+							//Debug.Log ("static prop "+i+" model number is ("+prop.PropType+")");
+							if (prop.PropType > map.staticPropDict.Length)
+							{
+								Debug.LogWarning ("Static prop " + i + " model number is (" + prop.PropType + ")");
+								continue;
+							}
+							string modelName = map.staticPropDict[prop.PropType];
+							//Debug.Log ("static prop "+i+" model name is "+modelName);
+							GameObject go = new GameObject ();
+							//GameObject go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+							go.name = "prop " + modelName;
+							go.transform.parent = propsObject.transform;
+
+							//GameObject testGo = (GameObject)MonoBehaviour.Instantiate(TempProp) as GameObject;
+							//testGo.transform.parent=go.transform;
+
+							go.transform.position = prop.Origin;
+							go.transform.rotation = Quaternion.Euler (prop.Angles);
+
+							SourceStudioModel tempModel = ResourceManager.Inst.GetModel (modelName);
+							if (tempModel == null)
+							{
+								//Debug.LogWarning("Error loading: "+modelName);
+								GameObject prim = GameObject.CreatePrimitive (PrimitiveType.Cube);
+								prim.transform.parent = go.transform;
+								prim.transform.localPosition = Vector3.zero;
+							}
+							else
+							{
+								tempModel.GetInstance (go, false, 0);
+							}
+
+							go.isStatic = true;
+							Props.Add (go);
+
 						}
-						string modelName = map.staticPropDict[prop.PropType];
-						//Debug.Log ("static prop "+i+" model name is "+modelName);
-						GameObject go = new GameObject();
-						//GameObject go = GameObject.CreatePrimitive(PrimitiveType.Cube);
-						go.name = "prop "+modelName;
-						go.transform.parent=propsObject.transform;
-
-						//GameObject testGo = (GameObject)MonoBehaviour.Instantiate(TempProp) as GameObject;
-						//testGo.transform.parent=go.transform;
-
-						go.transform.position = prop.Origin;
-						go.transform.rotation = Quaternion.Euler(prop.Angles);
-
-
-						SourceStudioModel tempModel = ResourceManager.Inst.GetModel(modelName);
-						if(tempModel == null)
-						{
-							//Debug.LogWarning("Error loading: "+modelName);
-							GameObject prim = GameObject.CreatePrimitive(PrimitiveType.Cube);
-							prim.transform.parent=go.transform;
-							prim.transform.localPosition=Vector3.zero;
-						}
-						else
-						{
-							tempModel.GetInstance(go,false,0);
-						}
-
-						go.isStatic = true;
-						Props.Add(go);
-
+						Debug.Log ("Finish Static Props");
 					}
-					Debug.Log("Finish Static Props");
-				}
-				break;
+					break;
 
-			case Type.WithoutBatching:
-				for (int i=0; i<map.modelsLump.Length; i++) 
-				{
-					models[i] = new GameObject("*"+i);
-					models[i].transform.SetParent( modelsObject.transform);
-					for (int f=map.modelsLump[i].firstface; f<map.modelsLump[i].firstface+map.modelsLump[i].numfaces; f++) 
+				case Type.WithoutBatching:
+					for (int i = 0; i < map.modelsLump.Length; i++)
 					{
-						GenerateFaceObject(f).transform.SetParent(models[i].transform);
+						models[i] = new GameObject ("*" + i);
+						models[i].transform.SetParent (modelsObject.transform);
+						for (int f = map.modelsLump[i].firstface; f < map.modelsLump[i].firstface + map.modelsLump[i].numfaces; f++)
+						{
+							GenerateFaceObject (f).transform.SetParent (models[i].transform);
+						}
 					}
-				}
-				break;
+					break;
 
-			case Type.OnlyDisplacements:
-				if(uSrcSettings.Inst.displacements)
-				{
-					for(int i=0; i<map.dispinfoLump.Length;i++)
+				case Type.OnlyDisplacements:
+					if (uSrcSettings.Inst.displacements)
 					{
-						GenerateDispFaceObject ((int)map.dispinfoLump[i].MapFace, 0);
-						Debug.Log ("FaceId: " + map.dispinfoLump[i].MapFace + " DispInfoId: "+i+
-						           " DispVertStart: " + map.dispinfoLump[i].DispVertStart);
+						for (int i = 0; i < map.dispinfoLump.Length; i++)
+						{
+							GenerateDispFaceObject ((int) map.dispinfoLump[i].MapFace, 0);
+							Debug.Log ("FaceId: " + map.dispinfoLump[i].MapFace + " DispInfoId: " + i +
+								" DispVertStart: " + map.dispinfoLump[i].DispVertStart);
+						}
 					}
-				}
-				break;
+					break;
 
-			case Type.OneFace:
-				if(uSrcSettings.Inst.displacements&map.facesLump[faceId].dispinfo!=-1)
-				{
-					GenerateDispFaceObject (faceId, 0);
-					Debug.Log ("FaceId: "+faceId+" DispInfoId: " + map.facesLump[faceId].dispinfo+
-						" DispVertStart: "+map.dispinfoLump[map.facesLump[faceId].dispinfo].DispVertStart);
-				}
-				else
-				{
-					GenerateFaceObject(faceId);
-				}
-				break;
+				case Type.OneFace:
+					if (uSrcSettings.Inst.displacements & map.facesLump[faceId].dispinfo != -1)
+					{
+						GenerateDispFaceObject (faceId, 0);
+						Debug.Log ("FaceId: " + faceId + " DispInfoId: " + map.facesLump[faceId].dispinfo +
+							" DispVertStart: " + map.dispinfoLump[map.facesLump[faceId].dispinfo].DispVertStart);
+					}
+					else
+					{
+						GenerateFaceObject (faceId);
+					}
+					break;
 			}
 
 			BR.BaseStream.Dispose ();
-			GC.Collect();
+			GC.Collect ();
 		}
-		 
-		void ParseEntities(string input)
+
+		void ParseEntities (string input)
 		{
-			entities = new List<string>();
+			entities = new List<string> ();
 			string pattern = @"{[^}]*}";
-			foreach(Match match in Regex.Matches (input,pattern,RegexOptions.IgnoreCase))
+			foreach (Match match in Regex.Matches (input, pattern, RegexOptions.IgnoreCase))
 			{
 				entities.Add (match.Value);
 			}
 		}
 
-		void LoadEntity(int index)
+		void LoadEntity (int index)
 		{
 			List<string> data = new List<string> ();
 			string pattern = "\"[^\"]*\"";
 
-			foreach(Match match in Regex.Matches (entities[index],pattern,RegexOptions.IgnoreCase))
+			foreach (Match match in Regex.Matches (entities[index], pattern, RegexOptions.IgnoreCase))
 				data.Add (match.Value.Trim ('"'));
 
-			int classNameIndex = data.FindIndex (n=>n=="classname");
-			string className=data[classNameIndex+1];
+			int classNameIndex = data.FindIndex (n => n == "classname");
+			string className = data[classNameIndex + 1];
 
-			if(className=="worldspawn")
+			if (className == "worldspawn")
 			{
 				//WorldSpawn(data);
 				return;
 			}
-			
-			Vector3 angles = new Vector3 (0,0,0);
-			if(data[0]=="model")
+
+			Vector3 angles = new Vector3 (0, 0, 0);
+			if (data[0] == "model")
 			{
-				int modelIndex=int.Parse(data[data.FindIndex(n=>n=="model")+1].Substring(1));
+				int modelIndex = int.Parse (data[data.FindIndex (n => n == "model") + 1].Substring (1));
 				GameObject obj = models[modelIndex];
-				
-				if(data.Contains ("origin"))
+
+				if (data.Contains ("origin"))
 				{
-					if(data.FindIndex (n=>n=="origin")%2==0)
-						obj.transform.position = ConvertUtils.StringToVector(data[data.FindIndex (n=>n=="origin")+1]);
+					if (data.FindIndex (n => n == "origin") % 2 == 0)
+						obj.transform.position = ConvertUtils.StringToVector (data[data.FindIndex (n => n == "origin") + 1]);
 				}
-				
-				if(data.Contains ("angles"))
+
+				if (data.Contains ("angles"))
 				{
-					string[] t=data[data.FindIndex (n=>n=="angles")+1].Split(' ');
-					angles = new Vector3(-float.Parse(t[2]),-float.Parse(t[1]),-float.Parse(t[0]));
+					string[] t = data[data.FindIndex (n => n == "angles") + 1].Split (' ');
+					angles = new Vector3 (-float.Parse (t[2]), -float.Parse (t[1]), -float.Parse (t[0]));
 					obj.transform.eulerAngles = angles;
 				}
-				
-				if(className=="func_illusionary")
+
+				if (className == "func_illusionary")
 				{
-					MeshRenderer[] renderers=obj.GetComponentsInChildren<MeshRenderer>();
-					for(int i=0;i<renderers.Length;i++)
+					MeshRenderer[] renderers = obj.GetComponentsInChildren<MeshRenderer> ();
+					for (int i = 0; i < renderers.Length; i++)
 					{
-						renderers[i].castShadows=false;
+						renderers[i].shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
 					}
 				}
 
 				return;
 			}
-			string[] testEnts = new string[]{"info_player_start","sky_camera","point_camera",
-			"light_environment","prop_dynamic","prop_dynamic_override"/*,"point_viewcontrol"*/,"info_target",
-				"light_spot","light","info_survivor_position","env_projectedtexture","func_illusionary",
-				"prop_button","prop_floor_button","prop_weighted_cube"};
-
-			if(testEnts.Contains(className))
+			string[] testEnts = new string[]
 			{
-				string targetname=null;
-				
-				if(data.Contains ("targetname"))
-					targetname = data[data.FindIndex (n=>n=="targetname")+1];
-					
-				if(data.Contains ("angles"))
-				{
-					string[] t=data[data.FindIndex (n=>n=="angles")+1].Split(' ');
-					angles = new Vector3(-float.Parse(t[2]),-float.Parse(t[1]),-float.Parse(t[0]));
-				}
-				
-				if(data.Contains ("pitch"))
-					angles.x = -float.Parse (data[data.FindIndex (n=>n=="pitch")+1]);
+				"info_player_start",
+				"sky_camera",
+				"point_camera",
+				"light_environment",
+				"prop_dynamic",
+				"prop_dynamic_override" /*,"point_viewcontrol"*/ ,
+				"info_target",
+				"light_spot",
+				"light",
+				"info_survivor_position",
+				"env_projectedtexture",
+				"func_illusionary",
+				"prop_button",
+				"prop_floor_button",
+				"prop_weighted_cube"
+			};
 
-				GameObject obj = new GameObject(targetname ?? className);
+			if (testEnts.Contains (className))
+			{
+				string targetname = null;
+
+				if (data.Contains ("targetname"))
+					targetname = data[data.FindIndex (n => n == "targetname") + 1];
+
+				if (data.Contains ("angles"))
+				{
+					string[] t = data[data.FindIndex (n => n == "angles") + 1].Split (' ');
+					angles = new Vector3 (-float.Parse (t[2]), -float.Parse (t[1]), -float.Parse (t[0]));
+				}
+
+				if (data.Contains ("pitch"))
+					angles.x = -float.Parse (data[data.FindIndex (n => n == "pitch") + 1]);
+
+				GameObject obj = new GameObject (targetname ?? className);
 				//if(className.Contains("light"))
 				obj.transform.parent = entObject.transform;
-				obj.transform.position = ConvertUtils.StringToVector(data[data.FindIndex (n=>n=="origin")+1]);
+				obj.transform.position = ConvertUtils.StringToVector (data[data.FindIndex (n => n == "origin") + 1]);
 				obj.transform.eulerAngles = angles;
 
 				/*if(className=="light")
@@ -348,57 +363,57 @@ namespace uSrcTools
 					//obj.transform.eulerAngles = angles; 
 				}*/
 
-				if(className=="light_environment"&Test.Inst.light_environment!=null)
+				if (className == "light_environment" & Test.Inst.light_environment != null)
 				{
-					Light l=Test.Inst.light_environment;
-					l.color = ConvertUtils.stringToColor(data[data.FindIndex (n=>n=="_light")+1],255);
+					Light l = Test.Inst.light_environment;
+					l.color = ConvertUtils.stringToColor (data[data.FindIndex (n => n == "_light") + 1], 255);
 					//float pitch = 0;
 					//if(data.Contains ("pitch"))
 					//	pitch = float.Parse (data[data.FindIndex (n=>n=="pitch")+1]);
 					//angles.y = pitch;
-					angles.y+=90;
-					l.transform.eulerAngles = angles; 
+					angles.y += 90;
+					l.transform.eulerAngles = angles;
 				}
-				 
-				if(className=="sky_camera")
+
+				if (className == "sky_camera")
 				{
-					Test.Inst.skyCameraOrigin=obj.transform.position;
-					if(Test.Inst.skyCamera!=null)
+					Test.Inst.skyCameraOrigin = obj.transform.position;
+					if (Test.Inst.skyCamera != null)
 					{
 						//Test.Inst.skyCamera.transform.SetParent(obj.transform);
 						//Test.Inst.skyCamera.transform.localPosition=Vector3.zero;
-						Test.Inst.skyCamera.transform.localPosition=(Test.Inst.playerCamera.transform.position/16)+Test.Inst.skyCameraOrigin;
-						Test.Inst.skyCamera.transform.rotation=Test.Inst.playerCamera.transform.rotation;
+						Test.Inst.skyCamera.transform.localPosition = (Test.Inst.playerCamera.transform.position / 16) + Test.Inst.skyCameraOrigin;
+						Test.Inst.skyCamera.transform.rotation = Test.Inst.playerCamera.transform.rotation;
 					}
 				}
 
-				if(!Test.Inst.isL4D2)
+				if (!Test.Inst.isL4D2)
 				{
-					if(className=="info_player_start")
+					if (className == "info_player_start")
 					{
-						Test.Inst.startPos=obj.transform.position;
+						Test.Inst.startPos = obj.transform.position;
 					}
 				}
 				else
 				{
-					if(className=="info_survivor_position")
+					if (className == "info_survivor_position")
 					{
-						Test.Inst.startPos=obj.transform.position;
+						Test.Inst.startPos = obj.transform.position;
 					}
 				}
 
-				if((className=="prop_dynamic"|className=="prop_dynamic_override"|className=="prop_weighted_cube"|className=="prop_floor_button"|className=="prop_button")&&uSrcSettings.Inst.propsDynamic)
+				if ((className == "prop_dynamic" | className == "prop_dynamic_override" | className == "prop_weighted_cube" | className == "prop_floor_button" | className == "prop_button") && uSrcSettings.Inst.propsDynamic)
 				{
-					string modelName="";
-					
-					if(data.Contains ("model"))
-						modelName=data[data.FindIndex (n=>n=="model")+1];
-					else if(className=="prop_weighted_cube")
-						modelName="models/props/metal_box.mdl";
-					else if(className=="prop_floor_button")
-						modelName="models/props/portal_button.mdl";
-					else if(className=="prop_button")
-						modelName="models/props/switch001.mdl";
+					string modelName = "";
+
+					if (data.Contains ("model"))
+						modelName = data[data.FindIndex (n => n == "model") + 1];
+					else if (className == "prop_weighted_cube")
+						modelName = "models/props/metal_box.mdl";
+					else if (className == "prop_floor_button")
+						modelName = "models/props/portal_button.mdl";
+					else if (className == "prop_button")
+						modelName = "models/props/switch001.mdl";
 
 					//angles.y-=90;
 					//Kostyl
@@ -407,22 +422,22 @@ namespace uSrcTools
 					//======
 					obj.transform.eulerAngles = angles;
 
-					SourceStudioModel tempModel = ResourceManager.Inst.GetModel(modelName);
-					if(tempModel==null||!tempModel.loaded)
+					SourceStudioModel tempModel = ResourceManager.Inst.GetModel (modelName);
+					if (tempModel == null || !tempModel.loaded)
 					{
 						//Debug.LogWarning("Error loading: "+modelName);
-						GameObject prim = GameObject.CreatePrimitive(PrimitiveType.Cube);
-						prim.name=modelName;
-						prim.transform.parent=obj.transform;
-						prim.transform.localPosition=Vector3.zero;
+						GameObject prim = GameObject.CreatePrimitive (PrimitiveType.Cube);
+						prim.name = modelName;
+						prim.transform.parent = obj.transform;
+						prim.transform.localPosition = Vector3.zero;
 					}
 					else
 					{
-						tempModel.GetInstance(obj, true,0);
+						tempModel.GetInstance (obj, true, 0);
 					}
 
 				}
-				
+
 				/*if(className=="prop_floor_button")
 				{
 					string modelname="models/props/button_base_reference.mdl";
@@ -456,9 +471,9 @@ namespace uSrcTools
 			}
 		}
 
-//==================================================================================================
+		//==================================================================================================
 
-		void CreateModelObject(int index)
+		void CreateModelObject (int index)
 		{
 			int numFaces = map.modelsLump[index].numfaces;
 			int firstFace = map.modelsLump[index].firstface;
@@ -467,44 +482,42 @@ namespace uSrcTools
 
 			GameObject model = new GameObject ("*" + index);
 			models[index] = model;
-			model.transform.SetParent(modelsObject.transform);
+			model.transform.SetParent (modelsObject.transform);
 			model.isStatic = true;
 
-			if(numFaces == 0)
+			if (numFaces == 0)
 			{
 				return;
 			}
 
-			if(uSrcSettings.Inst.lightmaps && map.hasLightmaps)
+			if (uSrcSettings.Inst.lightmaps && map.hasLightmaps)
 				model.layer = 8;
 
 			bspface face;
 			bsptexinfo ti;
-			int i=0;
+			int i = 0;
 
-
-			if (!uSrcSettings.Inst.textures) 
+			if (!uSrcSettings.Inst.textures)
 			{
-				for (i = firstFace; i < firstFace + numFaces; i++) 
+				for (i = firstFace; i < firstFace + numFaces; i++)
 				{
 					face = map.facesLump[i];
 					ti = map.texinfosLump[face.texinfo];
-					if(Test.Inst.skipSky&&(ti.flags & SourceBSPStructs.SURF_SKY)!=0||face.dispinfo!=-1)
+					if (Test.Inst.skipSky && (ti.flags & SourceBSPStructs.SURF_SKY) != 0 || face.dispinfo != -1)
 						continue;
-					if(numVerts+face.numedges>65000)
+					if (numVerts + face.numedges > 65000)
 					{
 						break;
 					}
 					numVerts += face.numedges;
-					numInds += (face.numedges-2)*3;
+					numInds += (face.numedges - 2) * 3;
 				}
-				if(i<firstFace+numFaces)
+				if (i < firstFace + numFaces)
 				{
-					Debug.LogWarning("skipped "+(firstFace+numFaces-i)+" faces. Load "+numVerts+" verts");
-					numFaces = i-firstFace;
+					Debug.LogWarning ("skipped " + (firstFace + numFaces - i) + " faces. Load " + numVerts + " verts");
+					numFaces = i - firstFace;
 				}
-				//Debug.Log ("CreateModelObject "+index+" numVerts "+numVerts);
-
+				Debug.Log ("CreateModelObject " + index + " numVerts " + numVerts);
 
 				Vector3[] verts = new Vector3[numVerts];
 				Vector2[] UVs = new Vector2[numVerts];
@@ -513,98 +526,100 @@ namespace uSrcTools
 
 				int vertOffs = 0;
 				int indsOffs = 0;
-				for (i = firstFace; i < firstFace + numFaces; i++) 
+				for (i = firstFace; i < firstFace + numFaces; i++)
 				{
 					face = map.facesLump[i];
 					ti = map.texinfosLump[face.texinfo];
-					if ((Test.Inst.skipSky&&(ti.flags & SourceBSPStructs.SURF_SKY) != 0)||face.dispinfo!=-1)
+					if ((Test.Inst.skipSky && (ti.flags & SourceBSPStructs.SURF_SKY) != 0) || face.dispinfo != -1)
 						continue;
 
-					if(BuildFace(i, ref verts, ref UVs, ref UV2s, ref tris, vertOffs, indsOffs))
+					if (BuildFace (i, ref verts, ref UVs, ref UV2s, ref tris, vertOffs, indsOffs))
 					{
 						vertOffs += face.numedges;
-						indsOffs += (face.numedges-2)*3;
+						indsOffs += (face.numedges - 2) * 3;
 					}
 					else
 					{
-					/*	GameObject subGO = new GameObject("lm"+curLightmap);
-						subGO.transform.SetParent(model.transform);
-						subGO.isStatic = true;
-						MeshRenderer subMR = subGO.AddComponent<MeshRenderer>();
-						subMR.material = Test.Inst.testMaterial;
-						MeshFilter subMF = model.AddComponent<MeshFilter>();
-						subMF.sharedMesh = new Mesh();
-						subMF.sharedMesh.name = "lm"+curLightmap;
-						subMF.sharedMesh.vertices = verts;
-						subMF.sharedMesh.triangles = tris;
-						subMF.sharedMesh.uv = UVs;
-						subMF.sharedMesh.uv2 = UV2s;
-						subMR.lightmapIndex = curLightmap;
-						subMF.sharedMesh.RecalculateNormals ();
+						/*	GameObject subGO = new GameObject("lm"+curLightmap);
+							subGO.transform.SetParent(model.transform);
+							subGO.isStatic = true;
+							MeshRenderer subMR = subGO.AddComponent<MeshRenderer>();
+							subMR.material = Test.Inst.testMaterial;
+							MeshFilter subMF = model.AddComponent<MeshFilter>();
+							subMF.sharedMesh = new Mesh();
+							subMF.sharedMesh.name = "lm"+curLightmap;
+							subMF.sharedMesh.vertices = verts;
+							subMF.sharedMesh.triangles = tris;
+							subMF.sharedMesh.uv = UVs;
+							subMF.sharedMesh.uv2 = UV2s;
+							subMR.lightmapIndex = curLightmap;
+							subMF.sharedMesh.RecalculateNormals ();
 
-						LM_UploadBlock();
-						LM_InitBlock();*/
+							LM_UploadBlock();
+							LM_InitBlock();*/
 					}
 				}
-				
-				MeshRenderer mr = model.AddComponent<MeshRenderer>();
+
+				MeshRenderer mr = model.AddComponent<MeshRenderer> ();
 				mr.material = Test.Inst.testMaterial;
-				
-				MeshFilter mf = model.AddComponent<MeshFilter>();
-				mf.sharedMesh = new Mesh();
-				mf.sharedMesh.name = "BSPModel_"+index;
+
+				MeshFilter mf = model.AddComponent<MeshFilter> ();
+				mf.sharedMesh = new Mesh ();
+				mf.sharedMesh.name = "BSPModel_" + index;
 				mf.sharedMesh.vertices = verts;
 				mf.sharedMesh.triangles = tris;
 				mf.sharedMesh.uv = UVs;
-				if(uSrcSettings.Inst.lightmaps&&map.hasLightmaps&&curLightmap<255)
+				if (uSrcSettings.Inst.lightmaps && map.hasLightmaps && curLightmap < 255)
 				{
 					mf.sharedMesh.uv2 = UV2s;
 					mr.lightmapIndex = curLightmap;
 				}
 
 				mf.sharedMesh.RecalculateNormals ();
-				
-				if(uSrcSettings.Inst.genColliders)
+
+				if (uSrcSettings.Inst.genColliders)
 				{
-					model.AddComponent<MeshCollider>();
+					model.AddComponent<MeshCollider> ();
 				}
 
-				if(!uSrcSettings.Inst.showTriggers)
+				if (!uSrcSettings.Inst.showTriggers)
 				{
-					string materialName = ConvertUtils.GetNullTerminatedString(map.texdataStringDataLump,map.texdataStringTableLump [map.texdataLump[ti.texdata].nameStringTableID]);
+					face = map.facesLump[i];
+					ti = map.texinfosLump[face.texinfo];
+					string materialName = ConvertUtils.GetNullTerminatedString (map.texdataStringDataLump, map.texdataStringTableLump[map.texdataLump[ti.texdata].nameStringTableID]);
 					materialName = materialName.ToLower ();
-					if((materialName.Contains("trigger")||materialName.Contains("fogvolume"))&&!uSrcSettings.Inst.showTriggers)
+					if ((materialName.Contains ("trigger") || materialName.Contains ("fogvolume")) && !uSrcSettings.Inst.showTriggers)
 					{
-						model.SetActive(false);
+						model.SetActive (false);
 					}
 				}
 			}
-			else 
+			else
 			{
 				bsptexdata texdata;
 				List<int>[] materialFaces = null;
 
 				materialFaces = new List<int>[map.texdataLump.Length];
-				for (i = firstFace; i < firstFace + numFaces; i++) 
+				for (i = firstFace; i < firstFace + numFaces; i++)
 				{
 					face = map.facesLump[i];
 					ti = map.texinfosLump[face.texinfo];
 					texdata = map.texdataLump[ti.texdata];
-					if(Test.Inst.skipSky&&(ti.flags & SourceBSPStructs.SURF_SKY)!=0||face.dispinfo!=-1)
+					if (Test.Inst.skipSky && (ti.flags & SourceBSPStructs.SURF_SKY) != 0 || face.dispinfo != -1)
 						continue;
-					
-					if(materialFaces[ti.texdata] == null)
+
+					if (materialFaces[ti.texdata] == null)
 					{
-						materialFaces[ti.texdata] = new List<int>();
+						materialFaces[ti.texdata] = new List<int> ();
 					}
-					materialFaces[ti.texdata].Add(i);
+					materialFaces[ti.texdata].Add (i);
 					texdata.numVerts += face.numedges;
-					texdata.numInds += (face.numedges-2)*3;
+					texdata.numInds += (face.numedges - 2) * 3;
 				}
 
-				for(i=0; i<map.texdataLump.Length; i++)
+				for (i = 0; i < map.texdataLump.Length; i++)
 				{
-					if(materialFaces[i]==null)
+					if (materialFaces[i] == null)
 					{
 						continue;
 					}
@@ -617,62 +632,64 @@ namespace uSrcTools
 
 					int vertOffs = 0;
 					int indsOffs = 0;
-					for(int j=0; j<materialFaces[i].Count(); j++)
+					for (int j = 0; j < materialFaces[i].Count (); j++)
 					{
 						face = map.facesLump[materialFaces[i][j]];
 
-						if(!BuildFace (materialFaces[i][j], ref verts, ref UVs, ref UV2s, ref tris, vertOffs, indsOffs))
+						if (!BuildFace (materialFaces[i][j], ref verts, ref UVs, ref UV2s, ref tris, vertOffs, indsOffs))
 						{
-							LM_UploadBlock();
-							LM_InitBlock();
+							LM_UploadBlock ();
+							LM_InitBlock ();
 							BuildFace (materialFaces[i][j], ref verts, ref UVs, ref UV2s, ref tris, vertOffs, indsOffs);
 						}
 						vertOffs += face.numedges;
-						indsOffs += (face.numedges-2)*3;
+						indsOffs += (face.numedges - 2) * 3;
 					}
 
-					string materialName = ConvertUtils.GetNullTerminatedString(map.texdataStringDataLump,map.texdataStringTableLump [texdata.nameStringTableID]);
+					string materialName = ConvertUtils.GetNullTerminatedString (map.texdataStringDataLump, map.texdataStringTableLump[texdata.nameStringTableID]);
 					materialName = materialName.ToLower ();
 
-					GameObject texObj = new GameObject(materialName);
-					texObj.transform.SetParent(model.transform);
+					GameObject texObj = new GameObject (materialName);
+					texObj.transform.SetParent (model.transform);
 					texObj.isStatic = true;
-					if(uSrcSettings.Inst.lightmaps&&map.hasLightmaps)
+					if (uSrcSettings.Inst.lightmaps && map.hasLightmaps)
 						texObj.layer = 8;
 
-					MeshRenderer mr = texObj.AddComponent<MeshRenderer>();
-					MeshFilter mf = texObj.AddComponent<MeshFilter>();
-					Mesh mesh = new Mesh();
+					MeshRenderer mr = texObj.AddComponent<MeshRenderer> ();
+					MeshFilter mf = texObj.AddComponent<MeshFilter> ();
+					Mesh mesh = new Mesh ();
 					mesh.name = materialName;
 					mesh.vertices = verts;
 					mesh.uv = UVs;
+					mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided; //Making model shadows two-sided for better quality.
 
-					if(uSrcSettings.Inst.lightmaps&&map.hasLightmaps&&curLightmap<255)
+					if (uSrcSettings.Inst.lightmaps && map.hasLightmaps && curLightmap < 255)
 						mesh.uv2 = UV2s;
 
 					mesh.triangles = tris;
-					mesh.RecalculateNormals();
+					mesh.RecalculateNormals ();
 					mf.sharedMesh = mesh;
 
 					Material mat = ResourceManager.Inst.GetMaterial (materialName);
 					mr.material = mat;
+					
 
-					if(uSrcSettings.Inst.lightmaps&&map.hasLightmaps&&curLightmap<255)
+					if (uSrcSettings.Inst.lightmaps && map.hasLightmaps && curLightmap < 255)
 					{
 						mr.lightmapIndex = curLightmap;
 					}
-					if((materialName.Contains("trigger")||materialName.Contains("fogvolume"))&&!uSrcSettings.Inst.showTriggers)
+					if ((materialName.Contains ("trigger") || materialName.Contains ("fogvolume")) && !uSrcSettings.Inst.showTriggers)
 					{
-					   texObj.SetActive(false);
+						texObj.SetActive (false);
 					}
 
-					if(uSrcSettings.Inst.genColliders)
+					if (uSrcSettings.Inst.genColliders)
 					{
-						texObj.AddComponent<MeshCollider>();
+						texObj.AddComponent<MeshCollider> ();
 					}
 				}
 
-				for(int t=0; t<map.texdataLump.Length; t++)
+				for (int t = 0; t < map.texdataLump.Length; t++)
 				{
 					texdata = map.texdataLump[t];
 
@@ -682,39 +699,36 @@ namespace uSrcTools
 			}
 		}
 
-		GameObject GenerateFaceObject(int index)
+		GameObject GenerateFaceObject (int index)
 		{
 			//List<Vector3> verts=new List<Vector3>();
 			//List<Vector2> UVs=new List<Vector2>();
 			//List<Vector2> lightmapUV=new List<Vector2>();
 			//List<int> tris = new List<int>();
-			
+
 			surface f = BuildFace (index);
 			//f.index = index;
 
 			//if((f.flags & 4) == 4)
 			//	return;
-				
 
-			
 			//tris.AddRange (f.triangles);
 			//verts.AddRange (f.points);
 			//UVs.AddRange (f.uv);
 			//lightmapUV.AddRange(f.uv2);
-			
-			GameObject faceObject = new GameObject ("Face: "+index);
-			
-			MeshRenderer mr = faceObject.AddComponent<MeshRenderer>();
-			
+
+			GameObject faceObject = new GameObject ("Face: " + index);
+
+			MeshRenderer mr = faceObject.AddComponent<MeshRenderer> ();
+			mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided; //Making model shadows two-sided for better quality.
+
 			//Material mat;
-			MeshFilter mf = faceObject.AddComponent<MeshFilter>();
-			mf.sharedMesh=new Mesh();
-			mf.sharedMesh.name = "BSPFace "+index;
-			mf.sharedMesh.vertices=f.points;
-			mf.sharedMesh.triangles=f.triangles;
-			mf.sharedMesh.uv=f.uv;
-
-
+			MeshFilter mf = faceObject.AddComponent<MeshFilter> ();
+			mf.sharedMesh = new Mesh ();
+			mf.sharedMesh.name = "BSPFace " + index;
+			mf.sharedMesh.vertices = f.points;
+			mf.sharedMesh.triangles = f.triangles;
+			mf.sharedMesh.uv = f.uv;
 
 			//=======================//?????????
 			/*
@@ -726,7 +740,7 @@ namespace uSrcTools
 			*/
 			//========================
 
-			if (uSrcSettings.Inst.textures) 
+			if (uSrcSettings.Inst.textures)
 			{
 				bsptexdata curTexData = map.texdataLump[map.texinfosLump[map.facesLump[index].texinfo].texdata];
 
@@ -734,72 +748,72 @@ namespace uSrcTools
 				string materialName = "";
 				//VMTLoader.VMTFile vmtFile=null;
 				//Material tempmat=null;
-				
+
 				//string
-				if (map.texdataStringDataLump.Length > map.texdataStringTableLump [curTexData.nameStringTableID] + 92)
-					materialName = new string (map.texdataStringDataLump, map.texdataStringTableLump [curTexData.nameStringTableID], 92);
+				if (map.texdataStringDataLump.Length > map.texdataStringTableLump[curTexData.nameStringTableID] + 92)
+					materialName = new string (map.texdataStringDataLump, map.texdataStringTableLump[curTexData.nameStringTableID], 92);
 				else
-					materialName = new string (map.texdataStringDataLump, map.texdataStringTableLump [curTexData.nameStringTableID], map.texdataStringDataLump.Length - map.texdataStringTableLump [curTexData.nameStringTableID]);
-				
+					materialName = new string (map.texdataStringDataLump, map.texdataStringTableLump[curTexData.nameStringTableID], map.texdataStringDataLump.Length - map.texdataStringTableLump[curTexData.nameStringTableID]);
+
 				materialName = materialName.ToLower ();
-				
+
 				if (materialName.Contains ("\0"))
 					materialName = materialName.Remove (materialName.IndexOf ('\0'));
-				
+
 				//return VMTLoader.GetMaterial (materialName);
 
 				Material tempmat = ResourceManager.Inst.GetMaterial (materialName);
 				//=================Material End========================
 
-
 				//if (tempmat.name.Contains ("trigger")||tempmat.name.Contains ("fogvolume")||tempmat.name.Contains ("tools/toolsskybox")) 
 				//	mr.enabled = false;
 
 				mr.material = tempmat;
-				
-				if (uSrcSettings.Inst.lightmaps && map.hasLightmaps)// & !vmtFile.translucent)
+
+				if (uSrcSettings.Inst.lightmaps && map.hasLightmaps) // & !vmtFile.translucent)
 				{
 
 					//Texture2D lightMap = CreateLightmapTex (f);
 
 					mf.sharedMesh.uv2 = f.uv2;
-					mr.lightmapIndex=0;
+					mr.lightmapIndex = 0;
 				}
 			}
 			else
 			{
 				mr.material = Test.Inst.testMaterial;
 			}
-			
+
 			mf.sharedMesh.RecalculateNormals ();
 			//mf.mesh.RecalculateBounds ();
 
 			faceObject.transform.parent = modelsObject.transform;
 
-			mf.sharedMesh.Optimize ();
+			var o_778_3_636690536766675730 = mf.sharedMesh;
 			faceObject.isStatic = true;
 
 			return faceObject;
 		}
 
-		void GenerateDispFaceObject(int index, int model)
+		void GenerateDispFaceObject (int index, int model)
 		{
 			surface f = BuildDispFace (index, model, map.facesLump[index].dispinfo);
 
-			GameObject faceObject = new GameObject ("DispFace: "+f.index);
-			
-			MeshRenderer mr = faceObject.AddComponent<MeshRenderer>();
-			
+			GameObject faceObject = new GameObject ("DispFace: " + f.index);
+
+			MeshRenderer mr = faceObject.AddComponent<MeshRenderer> ();
+			mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided; //Making model shadows two-sided for better quality.
+
 			//Material mat;
-			MeshFilter mf = faceObject.AddComponent<MeshFilter>();
-			mf.sharedMesh = new Mesh();
-			mf.sharedMesh.name = "DispFace "+f.index;
-			mf.sharedMesh.vertices=f.points;
+			MeshFilter mf = faceObject.AddComponent<MeshFilter> ();
+			mf.sharedMesh = new Mesh ();
+			mf.sharedMesh.name = "DispFace " + f.index;
+			mf.sharedMesh.vertices = f.points;
 			mf.sharedMesh.triangles = f.triangles;
 			mf.sharedMesh.uv = f.uv;
 			mf.sharedMesh.colors32 = f.cols;
 
-			if (uSrcSettings.Inst.textures) 
+			if (uSrcSettings.Inst.textures)
 			{
 				bsptexdata curTexData = map.texdataLump[map.texinfosLump[map.facesLump[index].texinfo].texdata];
 
@@ -807,23 +821,23 @@ namespace uSrcTools
 				string materialName = "";
 				//VMTLoader.VMTFile vmtFile=null;
 				//Material tempmat=null;
-				
+
 				//string
-				if (map.texdataStringDataLump.Length > map.texdataStringTableLump [curTexData.nameStringTableID] + 92)
-					materialName = new string (map.texdataStringDataLump, map.texdataStringTableLump [curTexData.nameStringTableID], 92);
+				if (map.texdataStringDataLump.Length > map.texdataStringTableLump[curTexData.nameStringTableID] + 92)
+					materialName = new string (map.texdataStringDataLump, map.texdataStringTableLump[curTexData.nameStringTableID], 92);
 				else
-					materialName = new string (map.texdataStringDataLump, map.texdataStringTableLump [curTexData.nameStringTableID], map.texdataStringDataLump.Length - map.texdataStringTableLump [curTexData.nameStringTableID]);
-				
+					materialName = new string (map.texdataStringDataLump, map.texdataStringTableLump[curTexData.nameStringTableID], map.texdataStringDataLump.Length - map.texdataStringTableLump[curTexData.nameStringTableID]);
+
 				materialName = materialName.ToLower ();
-				
+
 				if (materialName.Contains ("\0"))
 					materialName = materialName.Remove (materialName.IndexOf ('\0'));
-				
+
 				Material tempmat = ResourceManager.Inst.GetMaterial (materialName);
 				//=================Material End========================
 
 				mr.material = tempmat;
-				
+
 			}
 			else
 			{
@@ -833,12 +847,12 @@ namespace uSrcTools
 			mf.sharedMesh.RecalculateNormals ();
 
 			faceObject.transform.parent = dispObject.transform;
-			mf.sharedMesh.Optimize ();
+			var o_835_3_636690536766835854 = mf.sharedMesh;
 			faceObject.isStatic = true;
 
-			if(uSrcSettings.Inst.genColliders)
+			if (uSrcSettings.Inst.genColliders)
 			{
-				faceObject.AddComponent<MeshCollider>();
+				faceObject.AddComponent<MeshCollider> ();
 			}
 		}
 
@@ -848,26 +862,26 @@ namespace uSrcTools
 			public int texFlags;
 			public int texID;
 			public short dispinfo;
-			
+
 			public Vector3[] points;
 			public Vector2[] uv;
 			public Vector2[] uv2;
 			public Color32[] cols;
 			public int[] triangles;
-			
+
 			public int lightMapW;
 			public int lightMapH;
-			
+
 			public Vector2 lightmapScale;
 			public Vector2 lightmapOffset;
 		}
 
-		surface BuildFace(int index)
+		surface BuildFace (int index)
 		{
-			return new surface();//null
+			return new surface (); //null
 		}
-		
-		bool BuildFace(int index, ref Vector3[] verts, ref Vector2[] UVs, ref Vector2[] UV2s, ref int[] tris, int vertOffs, int triOffs)
+
+		bool BuildFace (int index, ref Vector3[] verts, ref Vector2[] UVs, ref Vector2[] UV2s, ref int[] tris, int vertOffs, int triOffs)
 		{
 			bspface curface = map.facesLump[index];
 			int startEdge = curface.firstedge;
@@ -876,113 +890,112 @@ namespace uSrcTools
 			//Debug.Log("texinfo "+curface.texinfo+"/"+map.texinfosLump.Length);
 			int tiFlags = texInfo.flags;
 
-			int lightmapW = curface.LightmapTextureSizeInLuxels[0]+1;
-			int lightmapH = curface.LightmapTextureSizeInLuxels[1]+1;
-			
+			int lightmapW = curface.LightmapTextureSizeInLuxels[0] + 1;
+			int lightmapH = curface.LightmapTextureSizeInLuxels[1] + 1;
+
 			int lmx = 0, lmy = 0;
-			if(uSrcSettings.Inst.lightmaps&&(tiFlags & SourceBSPStructs.SURF_NOLIGHT) == 0)
-				if(!LM_AllocBlock(lightmapW, lightmapH, out lmx, out lmy))
+			if (uSrcSettings.Inst.lightmaps && (tiFlags & SourceBSPStructs.SURF_NOLIGHT) == 0)
+				if (!LM_AllocBlock (lightmapW, lightmapH, out lmx, out lmy))
 				{
-					Debug.LogWarning ("LM_AllocBlock failed on face "+index);
+					Debug.LogWarning ("LM_AllocBlock failed on face " + index);
 					return false;
 				}
 
-			for(int i = 0; i<nEdges; i++)
+			for (int i = 0; i < nEdges; i++)
 			{
 				//verts.Add( map.surfedgesLump[i]>0 ? 
-				verts[vertOffs+i] = (map.vertexesLump[map.edgesLump[Math.Abs(map.surfedgesLump[startEdge+i])][map.surfedgesLump[startEdge+i]>0?0:1]]);
+				verts[vertOffs + i] = (map.vertexesLump[map.edgesLump[Math.Abs (map.surfedgesLump[startEdge + i])][map.surfedgesLump[startEdge + i] > 0 ? 0 : 1]]);
 			}
 			int j = triOffs;
-			for(int i = 0; i < nEdges - 2; i++)
+			for (int i = 0; i < nEdges - 2; i++)
 			{
 				tris[j] = vertOffs;
-				tris[j+1] = vertOffs+i+1;
-				tris[j+2] = vertOffs+i+2;
-				j+=3;
+				tris[j + 1] = vertOffs + i + 1;
+				tris[j + 2] = vertOffs + i + 2;
+				j += 3;
 			}
 
 			float scales = map.texdataLump[texInfo.texdata].width * uSrcSettings.Inst.worldScale;
 			float scalet = map.texdataLump[texInfo.texdata].height * uSrcSettings.Inst.worldScale;
-			
-			for(int i = 0; i < nEdges; i++)
+
+			for (int i = 0; i < nEdges; i++)
 			{
-				float tU = Vector3.Dot(verts[vertOffs+i] * uSrcSettings.Inst.worldScale, texInfo.texvecs) + (texInfo.texoffs * uSrcSettings.Inst.worldScale);
-				float tV = Vector3.Dot(verts[vertOffs+i] * uSrcSettings.Inst.worldScale, texInfo.texvect) + (texInfo.texofft * uSrcSettings.Inst.worldScale);
-				UVs[vertOffs+i] = new Vector2(tU / scales, tV / scalet);
+				float tU = Vector3.Dot (verts[vertOffs + i] * uSrcSettings.Inst.worldScale, texInfo.texvecs) + (texInfo.texoffs * uSrcSettings.Inst.worldScale);
+				float tV = Vector3.Dot (verts[vertOffs + i] * uSrcSettings.Inst.worldScale, texInfo.texvect) + (texInfo.texofft * uSrcSettings.Inst.worldScale);
+				UVs[vertOffs + i] = new Vector2 (tU / scales, tV / scalet);
 			}
 
-			for (int i=0; i<nEdges; i++) 
+			for (int i = 0; i < nEdges; i++)
 			{
 				float U, V;
-				if((tiFlags & SourceBSPStructs.SURF_NOLIGHT) == 0)
+				if ((tiFlags & SourceBSPStructs.SURF_NOLIGHT) == 0)
 				{
-					U = Vector3.Dot(verts[vertOffs+i],texInfo.lightvecs) + texInfo.lightoffs+0.5f - curface.LightmapTextureMinsInLuxels[0]+lmx;
-					V = Vector3.Dot(verts[vertOffs+i],texInfo.lightvect) + texInfo.lightofft+0.5f - curface.LightmapTextureMinsInLuxels[1]+lmy;
+					U = Vector3.Dot (verts[vertOffs + i], texInfo.lightvecs) + texInfo.lightoffs + 0.5f - curface.LightmapTextureMinsInLuxels[0] + lmx;
+					V = Vector3.Dot (verts[vertOffs + i], texInfo.lightvect) + texInfo.lightofft + 0.5f - curface.LightmapTextureMinsInLuxels[1] + lmy;
 				}
 				else
 				{
-					U = BLOCK_SIZE-2;
-					V = BLOCK_SIZE-2;
+					U = BLOCK_SIZE - 2;
+					V = BLOCK_SIZE - 2;
 				}
 
-				UV2s[vertOffs+i] = new Vector2(U/BLOCK_SIZE, V/BLOCK_SIZE);
+				UV2s[vertOffs + i] = new Vector2 (U / BLOCK_SIZE, V / BLOCK_SIZE);
 			}
 
-			for(int i=0; i<nEdges; i++)
+			for (int i = 0; i < nEdges; i++)
 			{
-				verts[vertOffs+i] *= uSrcSettings.Inst.worldScale;
+				verts[vertOffs + i] *= uSrcSettings.Inst.worldScale;
 			}
 
-			if(uSrcSettings.Inst.lightmaps&&(tiFlags & SourceBSPStructs.SURF_NOLIGHT) == 0)
-				CreateLightmapTex(lightmapW,lightmapH,lmx,lmy,index);
+			if (uSrcSettings.Inst.lightmaps && (tiFlags & SourceBSPStructs.SURF_NOLIGHT) == 0)
+				CreateLightmapTex (lightmapW, lightmapH, lmx, lmy, index);
 
 			return true;
 		}
 
-		surface BuildDispFace(int faceIndex, int model, short dispinfoId)
+		surface BuildDispFace (int faceIndex, int model, short dispinfoId)
 		{
 			Vector3[] vertices = new Vector3[4];
-			List<Vector3> disp_verts = new List<Vector3>();
-			List<Vector2> UVs = new List<Vector2>();
-			List<Color32> cols=new List<Color32>();
-			List<int> indices = new List<int>();
+			List<Vector3> disp_verts = new List<Vector3> ();
+			List<Vector2> UVs = new List<Vector2> ();
+			List<Color32> cols = new List<Color32> ();
+			List<int> indices = new List<int> ();
 
 			bspface curFace = map.facesLump[faceIndex];
 
 			bsptexinfo curTexInfo = map.texinfosLump[curFace.texinfo];
 			bsptexdata curTexData = map.texdataLump[curTexInfo.texdata];
 
-
 			int fEdge = curFace.firstedge;
 
-			for(int i = 0; i<curFace.numedges; i++)
+			for (int i = 0; i < curFace.numedges; i++)
 			{
-				vertices[i] = (map.surfedgesLump[fEdge+i]>0 ? 
-					map.vertexesLump[map.edgesLump[Mathf.Abs (map.surfedgesLump[fEdge+i])][0]] : 
-					map.vertexesLump[map.edgesLump[Mathf.Abs (map.surfedgesLump[fEdge+i])][1]]);
+				vertices[i] = (map.surfedgesLump[fEdge + i] > 0 ?
+					map.vertexesLump[map.edgesLump[Mathf.Abs (map.surfedgesLump[fEdge + i])][0]] :
+					map.vertexesLump[map.edgesLump[Mathf.Abs (map.surfedgesLump[fEdge + i])][1]]);
 			}
 
-			bspdispinfo curDisp = map.dispinfoLump [dispinfoId];
+			bspdispinfo curDisp = map.dispinfoLump[dispinfoId];
 			Vector3 startPos = curDisp.startPosition;
 
 			float dist;
 			float minDist = 0.1f;
 			int minIndex = 0;
 
-			for (int i=0; i<4; i++) 
+			for (int i = 0; i < 4; i++)
 			{
-				dist=Vector3.Distance(startPos,vertices[i]);
+				dist = Vector3.Distance (startPos, vertices[i]);
 
-				if(dist<minDist)
+				if (dist < minDist)
 				{
-					minDist=dist;
-					minIndex=i;
+					minDist = dist;
+					minIndex = i;
 				}
 			}
 
 			Vector3 temp;
 
-			for (int i=0; i<minIndex; i++) 
+			for (int i = 0; i < minIndex; i++)
 			{
 				temp = vertices[0];
 				vertices[0] = vertices[1];
@@ -994,15 +1007,14 @@ namespace uSrcTools
 			Vector3 leftEdge = vertices[1] - vertices[0];
 			Vector3 rightEdge = vertices[2] - vertices[3];
 
-
 			int numEdgeVertices = (1 << curDisp.power) + 1;
 
-			float subdivideScale=1.0f/(float)(numEdgeVertices-1);
+			float subdivideScale = 1.0f / (float) (numEdgeVertices - 1);
 
 			Vector3 leftEdgeStep = leftEdge * subdivideScale;
 			Vector3 rightEdgeStep = rightEdge * subdivideScale;
 
-			int firstVertex=0;
+			int firstVertex = 0;
 
 			Vector3 leftEnd;
 			Vector3 rightEnd;
@@ -1015,91 +1027,88 @@ namespace uSrcTools
 			Vector3 flatVertex;
 			Vector3 dispVertex;
 
-			float scaleU = (float)1f/curTexData.width;
-			float scaleV = (float)1f/curTexData.height;
+			float scaleU = (float) 1f / curTexData.width;
+			float scaleV = (float) 1f / curTexData.height;
 
-			for(int i=0; i<numEdgeVertices; i++)
+			for (int i = 0; i < numEdgeVertices; i++)
 			{
-				leftEnd = leftEdgeStep*(float)i;
+				leftEnd = leftEdgeStep * (float) i;
 				leftEnd += vertices[0];
-				rightEnd = rightEdgeStep*(float)i;
+				rightEnd = rightEdgeStep * (float) i;
 				rightEnd += vertices[3];
 
-				leftRightSeg=rightEnd-leftEnd;
-				leftRightStep=leftRightSeg*subdivideScale;
+				leftRightSeg = rightEnd - leftEnd;
+				leftRightStep = leftRightSeg * subdivideScale;
 
-				for(int j=0; j<numEdgeVertices; j++)
+				for (int j = 0; j < numEdgeVertices; j++)
 				{
-					dispVertIndex=curDisp.DispVertStart;
-					dispVertIndex+=i*numEdgeVertices+j;
-					dispVert=map.dispVertsLump[dispVertIndex];
+					dispVertIndex = curDisp.DispVertStart;
+					dispVertIndex += i * numEdgeVertices + j;
+					dispVert = map.dispVertsLump[dispVertIndex];
 
-					flatVertex=leftEnd+(leftRightStep*(float)j);
+					flatVertex = leftEnd + (leftRightStep * (float) j);
 
-					dispVertex=dispVert.vec*(dispVert.dist/* *scale*/);
-					dispVertex+=flatVertex;
+					dispVertex = dispVert.vec * (dispVert.dist /* *scale*/ );
+					dispVertex += flatVertex;
 
 					disp_verts.Add (dispVertex);
 
+					float tU = Vector3.Dot (flatVertex, curTexInfo.texvecs) + (curTexInfo.texoffs);
+					float tV = Vector3.Dot (flatVertex, curTexInfo.texvect) + (curTexInfo.texofft);
+					UVs.Add (new Vector2 (tU * scaleU, tV * scaleV));
 
-					float tU = Vector3.Dot(flatVertex, curTexInfo.texvecs) + (curTexInfo.texoffs);
-					float tV = Vector3.Dot(flatVertex, curTexInfo.texvect) + (curTexInfo.texofft);
-					UVs.Add( new Vector2(tU * scaleU, tV * scaleV));
-			
-					cols.Add(new Color32((byte)(dispVert.alpha),0,0,0));
+					cols.Add (new Color32 ((byte) (dispVert.alpha), 0, 0, 0));
 				}
 			}
 
 			int curIndex;
 
-			for (int i=0; i<numEdgeVertices-1; i++) 
+			for (int i = 0; i < numEdgeVertices - 1; i++)
 			{
-				for (int j=0; j<numEdgeVertices-1; j++) 
+				for (int j = 0; j < numEdgeVertices - 1; j++)
 				{
 					curIndex = i * numEdgeVertices + j;
 
-					if((curIndex % 2)==1)
+					if ((curIndex % 2) == 1)
 					{
 						curIndex += firstVertex;
 
-						indices.Add(curIndex + 1);
-						indices.Add(curIndex );
-						indices.Add(curIndex + numEdgeVertices);
-						indices.Add(curIndex + numEdgeVertices + 1);
-						indices.Add(curIndex + 1);
-						indices.Add(curIndex + numEdgeVertices);
+						indices.Add (curIndex + 1);
+						indices.Add (curIndex);
+						indices.Add (curIndex + numEdgeVertices);
+						indices.Add (curIndex + numEdgeVertices + 1);
+						indices.Add (curIndex + 1);
+						indices.Add (curIndex + numEdgeVertices);
 					}
 					else
 					{
 						curIndex += firstVertex;
 
-						indices.Add(curIndex );
-						indices.Add(curIndex + numEdgeVertices);
-						indices.Add(curIndex + numEdgeVertices + 1);
-						indices.Add(curIndex + 1);
-						indices.Add(curIndex );
-						indices.Add(curIndex + numEdgeVertices + 1);
+						indices.Add (curIndex);
+						indices.Add (curIndex + numEdgeVertices);
+						indices.Add (curIndex + numEdgeVertices + 1);
+						indices.Add (curIndex + 1);
+						indices.Add (curIndex);
+						indices.Add (curIndex + numEdgeVertices + 1);
 					}
 				}
 			}
 
-
-			for(int i=0;i<disp_verts.Count;i++)
+			for (int i = 0; i < disp_verts.Count; i++)
 			{
 				disp_verts[i] *= uSrcSettings.Inst.worldScale;
 			}
-			
-			
+
 			surface f = new surface ();
 			f.index = faceIndex;
 			//f.flags = flags;
 
 			f.dispinfo = dispinfoId;
 
-			f.points = disp_verts.ToArray();
-			f.uv = UVs.ToArray();
+			f.points = disp_verts.ToArray ();
+			f.uv = UVs.ToArray ();
 			//f.uv2 = UV2s;
-			f.cols=cols.ToArray();
+			f.cols = cols.ToArray ();
 			f.triangles = indices.ToArray ();
 
 			//f.lightMapW = lightmapW;
@@ -1108,17 +1117,16 @@ namespace uSrcTools
 			return f;
 		}
 
-
-		Texture2D CreateLightmapTex(surface f)
+		Texture2D CreateLightmapTex (surface f)
 		{
 			return null;
 		}
 
-		void CreateLightmapTex(int w, int h, int lx, int ly, int i)
+		void CreateLightmapTex (int w, int h, int lx, int ly, int i)
 		{
-			if(map.facesLump [i].lightofs == -1 || map.lightingLump.Length == 0)
+			if (map.facesLump[i].lightofs == -1 || map.lightingLump.Length == 0)
 			{
-				Debug.LogWarning("Face "+i+" haven't lightmap. Flags "+map.texinfosLump[map.facesLump[i].texinfo].flags );
+				Debug.LogWarning ("Face " + i + " haven't lightmap. Flags " + map.texinfosLump[map.facesLump[i].texinfo].flags);
 				return;
 			}
 			//Texture2D tex = new Texture2D (f.lightMapW, f.lightMapH, TextureFormat.RGB24, false,true);
@@ -1126,14 +1134,14 @@ namespace uSrcTools
 			//Color32[] colors = new Color32[w * h];
 			Color[] colors = new Color[w * h];
 
-			int Offset = map.facesLump [i].lightofs/4;
+			int Offset = map.facesLump[i].lightofs / 4;
 
-			for(int y=0; y<h; y++)
+			for (int y = 0; y < h; y++)
 			{
-				for(int x=0; x<w; x++)
+				for (int x = 0; x < w; x++)
 				{
-					Color32 col = map.lightingLump[Offset + w*y+x];
-					colors[w*y+x] = new Color(col.r/255.0f,col.g/255.0f,col.b/255.0f,col.a/255.0f);
+					Color32 col = map.lightingLump[Offset + w * y + x];
+					colors[w * y + x] = new Color (col.r / 255.0f, col.g / 255.0f, col.b / 255.0f, col.a / 255.0f);
 				}
 			}
 
@@ -1141,60 +1149,60 @@ namespace uSrcTools
 			//tex.Apply ();
 			//return tex;
 
-			curLightmapTex.SetPixels(lx,ly,w,h,colors);
+			curLightmapTex.SetPixels (lx, ly, w, h, colors);
 		}
 
-		void LM_InitBlock()
+		void LM_InitBlock ()
 		{
-			if(lm_allocated==null)
+			if (lm_allocated == null)
 				return;
-			for(int i=0;i<BLOCK_SIZE;i++)
+			for (int i = 0; i < BLOCK_SIZE; i++)
 			{
-				lm_allocated[i]=0;
+				lm_allocated[i] = 0;
 			}
-			curLightmapTex = new Texture2D(BLOCK_SIZE,BLOCK_SIZE,TextureFormat.RGB24,false,true);
+			curLightmapTex = new Texture2D (BLOCK_SIZE, BLOCK_SIZE, TextureFormat.RGB24, false, true);
 		}
 
-		bool LM_AllocBlock(int w, int h, out int x, out int y)
+		bool LM_AllocBlock (int w, int h, out int x, out int y)
 		{
 			int i, j, best2;
 			int best = BLOCK_SIZE;
 
 			x = y = 0;
 
-			for(i=0; i<BLOCK_SIZE-w; i++)
+			for (i = 0; i < BLOCK_SIZE - w; i++)
 			{
 				best2 = 0;
 
-				for(j=0; j<w; j++)
+				for (j = 0; j < w; j++)
 				{
-					if(lm_allocated[i+j] >= best)
+					if (lm_allocated[i + j] >= best)
 						break;
-					if(lm_allocated[i+j] > best2)
-						best2 = lm_allocated[i+j];
+					if (lm_allocated[i + j] > best2)
+						best2 = lm_allocated[i + j];
 				}
 
-				if(j == w)
+				if (j == w)
 				{
 					x = i;
 					y = best = best2;
 				}
 			}
 
-			if(best+h > BLOCK_SIZE)
+			if (best + h > BLOCK_SIZE)
 				return false;
 
-			for(i=0; i<w; i++)
-				lm_allocated[x+i] = best+h;
+			for (i = 0; i < w; i++)
+				lm_allocated[x + i] = best + h;
 
 			return true;
 		}
 
-		void LM_UploadBlock()
+		void LM_UploadBlock ()
 		{
-			Debug.Log ("Upload lightmap block "+curLightmap);
-			curLightmapTex.Apply();
-			lightmapsData.Add( new LightmapData(){lightmapFar = curLightmapTex});
+			Debug.Log ("Upload lightmap block " + curLightmap);
+			curLightmapTex.Apply ();
+			lightmapsData.Add (new LightmapData () { lightmapColor = curLightmapTex });
 			curLightmapTex = null;
 			curLightmap++;
 		}
