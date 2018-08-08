@@ -32,7 +32,7 @@ Author: vk.com/lewa_j
 VK Public: vk.com/uSrcTools
 
 
-Suported formats:
+Supported formats:
 
 bsp - maps
 
