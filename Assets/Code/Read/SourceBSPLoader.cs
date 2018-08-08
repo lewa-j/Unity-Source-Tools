@@ -584,7 +584,7 @@ namespace uSrcTools
 
 				if (!uSrcSettings.Inst.showTriggers)
 				{
-					face = map.facesLump[i];
+					face = map.facesLump[firstFace];
 					ti = map.texinfosLump[face.texinfo];
 					string materialName = ConvertUtils.GetNullTerminatedString (map.texdataStringDataLump, map.texdataStringTableLump[map.texdataLump[ti.texdata].nameStringTableID]);
 					materialName = materialName.ToLower ();
