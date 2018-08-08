@@ -9,32 +9,36 @@ namespace uSrcTools
 		{
 			get
 			{
-				return inst??(inst=new GameObject("uSrcSettings").AddComponent<uSrcSettings>());
+				return inst??(inst = new GameObject ("uSrcSettings").AddComponent<uSrcSettings> ());
 			}
 		}
 
 		public string path = @"I:\uSource";
 		//public string TempPath = @"I:\Program Files/Half-Life 2";
 		public string game = @"hl2";
-		public bool haveMod=false;
+		public bool haveMod = false;
 		public string mod = @"portal";
 		public float worldScale = 0.026f;
-		
+
 		public bool textures = true;
 		public bool lightmaps = false;
 		public bool displacements = false;
 		public bool props = true;
-		public bool propsDynamic=false;
+		public bool propsDynamic = false;
 		public bool entities = true;
 		public bool showTriggers = false;
-		public bool genColliders=false;
-		
-		public Shader sDiffuse;
-		public Shader sTransparent;
-		public Shader sAlphatest;
+		public bool genColliders = false;
+
+		//public Shader sDiffuse;
+		public Material diffuseMaterial;
+		//public Shader sTransparent;
+		public Material transparentMaterial;
+		//public Shader sAlphatest;
+		public Material transparentCutout;
 		public Shader sUnlit;
 		public Shader sUnlitTransparent;
-		public Shader sVertexLit;
+		public Material vertexLitMaterial;
+		//public Shader sVertexLit;
 		public Shader sSelfillum;
 		public Shader sAdditive;
 		public Shader sRefract;
@@ -45,12 +49,13 @@ namespace uSrcTools
 		public Shader Sky;
 		public Shader Solid;*/
 
-		void Awake()
+		void Awake ()
 		{
 			inst = this;
-			
-			if(sDiffuse==null)
-				sDiffuse=Shader.Find("Diffuse");
+
+			if (diffuseMaterial == null)
+				//diffuseMaterial = Shader.Find ("Diffuse");
+				print ("diffuse material is not there, please fix");
 		}
 	}
 }

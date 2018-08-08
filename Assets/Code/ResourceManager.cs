@@ -91,9 +91,11 @@ namespace uSrcTools
 					if(vmtFile.selfillum)
 						tempmat = new Material(uSrcSettings.Inst.sSelfillum);
 					else if(!vmtFile.translucent && !vmtFile.alphatest)
-						tempmat = new Material(uSrcSettings.Inst.sDiffuse);
+						//tempmat = new Material(uSrcSettings.Inst.sDiffuse);
+						tempmat = new Material(uSrcSettings.Inst.diffuseMaterial);
 					else
-						tempmat = new Material(uSrcSettings.Inst.sTransparent);
+						//tempmat = new Material(uSrcSettings.Inst.sTransparent); Also fixes the transparency.
+						tempmat = new Material(uSrcSettings.Inst.transparentMaterial);
 				}
 				else if(vmtFile.shader=="unlitgeneric")
 				{
@@ -116,11 +118,14 @@ namespace uSrcTools
 					if(vmtFile.selfillum)
 						tempmat = new Material(uSrcSettings.Inst.sSelfillum);
 					else if(vmtFile.alphatest)
-						tempmat = new Material(uSrcSettings.Inst.sAlphatest);
+						//tempmat = new Material(uSrcSettings.Inst.sAlphatest); Slow but sure move to materials instead of shaders.
+						tempmat = new Material(uSrcSettings.Inst.transparentCutout);
 					else if(vmtFile.translucent) 
-						tempmat = new Material(uSrcSettings.Inst.sTransparent);
+						//tempmat = new Material(uSrcSettings.Inst.sTransparent); This fixes the transparency.
+						tempmat = new Material(uSrcSettings.Inst.transparentMaterial);
 					else
-						tempmat = new Material(uSrcSettings.Inst.sVertexLit);
+						//tempmat = new Material(uSrcSettings.Inst.sVertexLit); This is to turn down the smoothness.
+						tempmat = new Material(uSrcSettings.Inst.vertexLitMaterial);
 				}
 				else if(vmtFile.shader=="refract")
 				{
@@ -139,7 +144,7 @@ namespace uSrcTools
 				else if(vmtFile.shader=="water")
 				{
 					Debug.LogWarning("Shader "+vmtFile.shader+" from VMT "+materialName+" not suported");
-					tempmat = new Material(uSrcSettings.Inst.sTransparent);
+					tempmat = new Material(uSrcSettings.Inst.transparentMaterial);
 					tempmat.color=new Color(1,1,1,0.3f);
 				}
 				else if(vmtFile.shader=="black")
@@ -149,7 +154,7 @@ namespace uSrcTools
 				}
 				else if(vmtFile.shader=="infected")
 				{
-					tempmat = new Material(uSrcSettings.Inst.sDiffuse);
+					tempmat = new Material(uSrcSettings.Inst.diffuseMaterial);
 				}
 				/*else if(vmtFile.shader=="eyerefract")
 				{
@@ -159,7 +164,7 @@ namespace uSrcTools
 				else
 				{
 					Debug.LogWarning("Shader "+vmtFile.shader+" from VMT "+materialName+" not suported");
-					tempmat = new Material(uSrcSettings.Inst.sDiffuse);
+					tempmat = new Material(uSrcSettings.Inst.diffuseMaterial);
 				}
 				
 				tempmat.name = materialName;
@@ -283,7 +288,7 @@ namespace uSrcTools
 				}
 			}
 			
-			//Debug.LogWarning ("Model material "+dirs[0]+filename+": Not Found");
+			Debug.LogWarning ("Model material "+dirs[0]+filename+": Not Found");
 			return dirs[0]+filename;
 		}
 	
