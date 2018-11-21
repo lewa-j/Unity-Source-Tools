@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
 using System.IO;
+using System.Text.RegularExpressions;
 
 namespace uSrcTools
 {
@@ -210,7 +211,8 @@ namespace uSrcTools
 		{
 			filename=filename.Replace ("\\","/");
 			filename=filename.Replace ("//","/");
-			string path="";
+			string path = string.Empty;
+
 			if(uSrcSettings.Inst.haveMod)
 			{
 				if(uSrcSettings.Inst.mod!="none"||uSrcSettings.Inst.mod!="")
@@ -224,16 +226,17 @@ namespace uSrcTools
 			}
 			
 			path = uSrcSettings.Inst.path + "/" + uSrcSettings.Inst.game + "/";
-			if(CheckFile(path + filename))
-			{
-				return path + filename;
-			}
-			else if(CheckFullFiles(filename))
-			{
-				return path + filename;
-			}
-			
-			Debug.LogWarning (uSrcSettings.Inst.path + "/" + uSrcSettings.Inst.game + "/" + filename+": Not Found");
+
+            string renamedFile = filename;
+            if (filename.Contains(".vmt") || filename.Contains(".vtf"))
+                renamedFile = ProcessTextureNames(filename);
+
+            if (CheckFile(path + renamedFile))
+                return path + renamedFile;
+            else if (CheckFullFiles(renamedFile))
+                return path + renamedFile;
+
+            Debug.LogWarning (uSrcSettings.Inst.path + "/" + uSrcSettings.Inst.game + "/" + filename+": Not Found");
 			return null;
 		}
 	
@@ -303,5 +306,34 @@ namespace uSrcTools
 			}
 			return false;
 		}
-	}
+
+        /*
+		* Code taken from BSPSource by Nico Bergemann (ata4)
+        * Converts environment-mapped texture names to original texture names and
+        * performs some cleanups. It also assigns cubemap IDs to texname IDs which
+        * is later used to create the "sides" properties of env_cubemap entities.
+        * 
+        * Following operations will be performed:
+        * - chop "maps/mapname/" from start of names
+        * - chop "_n_n_n or _n_n_n_depth_n from end of names
+        */
+        public static string ProcessTextureNames(string filename)
+        {
+            string regex = @"_-?(\d+)_?-?(\d+)_?-?(\d+)";
+
+            // search for "maps/<mapname>" prefix
+            string textureNew = filename.Replace("maps/" + Test.Inst.mapName + "/", string.Empty);
+
+            // search and replace origin coordinates
+            textureNew = Regex.Replace(textureNew, regex, string.Empty);
+
+            // search for and replace "_depth_xxx" suffix
+            textureNew = Regex.Replace(textureNew, "_depth_(-?\\d+)", string.Empty);
+
+            // search for and replace _wvt_patch" suffix
+            textureNew = Regex.Replace(textureNew, "_wvt_patch", string.Empty);
+
+            return textureNew;
+        }
+    }
 }
