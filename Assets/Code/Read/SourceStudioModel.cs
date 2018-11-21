@@ -472,6 +472,7 @@ namespace uSrcTools
 			
 			go.AddComponent<MeshFilter> ().mesh = modelMesh;
 			MeshRenderer mr = go.AddComponent<MeshRenderer> ();
+			mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided; //Making model shadows two-sided for better quality.
 			
 			modelMesh.RecalculateBounds ();
 			mr.materials = TempMats;
