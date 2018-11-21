@@ -13,6 +13,7 @@ namespace uSrcTools
 			}
 		}
 
+        [Header("Path and mods")]
 		public string path = @"I:\uSource";
 		//public string TempPath = @"I:\Program Files/Half-Life 2";
 		public string game = @"hl2";
@@ -20,6 +21,7 @@ namespace uSrcTools
 		public string mod = @"portal";
 		public float worldScale = 0.026f;
 
+        [Header("Settings")]
 		public bool textures = true;
 		public bool lightmaps = false;
 		public bool displacements = false;
@@ -27,9 +29,12 @@ namespace uSrcTools
 		public bool propsDynamic = false;
 		public bool entities = true;
 		public bool showTriggers = false;
-		public bool genColliders = false;
+		public bool generateColliders = false;
 
-		//public Shader sDiffuse;
+        [Header("Material Resources")]
+		public uSrcResources resources;
+
+		/* //public Shader sDiffuse;
 		public Material diffuseMaterial;
 		//public Shader sTransparent;
 		public Material transparentMaterial;
@@ -42,7 +47,7 @@ namespace uSrcTools
 		public Shader sSelfillum;
 		public Shader sAdditive;
 		public Shader sRefract;
-		public Shader sWorldVertexTransition;
+		public Shader sWorldVertexTransition; */
 
 		/*public Shader Lmap;
 		public Shader LmapAlpha;
@@ -53,7 +58,10 @@ namespace uSrcTools
 		{
 			inst = this;
 
-			if (diffuseMaterial == null)
+            if (resources == null)
+                resources = Resources.Load<uSrcResources>("uSrcResources");
+
+            if (resources.diffuseMaterial == null)
 				//diffuseMaterial = Shader.Find ("Diffuse");
 				print ("diffuse material is not there, please fix");
 		}

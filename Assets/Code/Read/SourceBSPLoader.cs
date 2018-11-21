@@ -575,11 +575,11 @@ namespace uSrcTools
 					mr.lightmapIndex = curLightmap;
 				}
 
-				mf.sharedMesh.RecalculateNormals ();
+				mf.sharedMesh.RecalculateNormals();
 
-				if (uSrcSettings.Inst.genColliders)
+				if (uSrcSettings.Inst.generateColliders)
 				{
-					model.AddComponent<MeshCollider> ();
+					model.AddComponent<MeshCollider>();
 				}
 
 				if (!uSrcSettings.Inst.showTriggers)
@@ -683,7 +683,7 @@ namespace uSrcTools
 						texObj.SetActive (false);
 					}
 
-					if (uSrcSettings.Inst.genColliders)
+					if (uSrcSettings.Inst.generateColliders)
 					{
 						texObj.AddComponent<MeshCollider> ();
 					}
@@ -850,7 +850,7 @@ namespace uSrcTools
 			var o_835_3_636690536766835854 = mf.sharedMesh;
 			faceObject.isStatic = true;
 
-			if (uSrcSettings.Inst.genColliders)
+			if (uSrcSettings.Inst.generateColliders)
 			{
 				faceObject.AddComponent<MeshCollider> ();
 			}

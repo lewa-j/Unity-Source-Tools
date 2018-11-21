@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a354d53bc6588c44d935cd97d9651bb8, type: 3}
+  m_Name: uSrcResources
+  m_EditorClassIdentifier: 
+  diffuseMaterial: {fileID: 2100000, guid: 5d313a4a04b262a41a1646bbaa693b66, type: 2}
+  transparentMaterial: {fileID: 2100000, guid: 2f93decc52974364ba5d8492591432ff, type: 2}
+  transparentCutout: {fileID: 2100000, guid: 4daeeffb91a69fd4592a9c65ed9b46be, type: 2}
+  sUnlit: {fileID: 10752, guid: 0000000000000000f000000000000000, type: 0}
+  sUnlitTransparent: {fileID: 10750, guid: 0000000000000000f000000000000000, type: 0}
+  vertexLitMaterial: {fileID: 2100000, guid: 5d313a4a04b262a41a1646bbaa693b66, type: 2}
+  sSelfillum: {fileID: 4800000, guid: b37bce61fcee4b64c904d0077e6921e1, type: 3}
+  sAdditive: {fileID: 200, guid: 0000000000000000f000000000000000, type: 0}
+  sRefract: {fileID: 4800000, guid: a660959c3b17e2241bc01d690ffc2507, type: 3}
+  sWorldVertexTransition: {fileID: 4800000, guid: e8100e65dccf66a44a47a50d2bf4d3c9,
+    type: 3}
