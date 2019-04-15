@@ -518,7 +518,7 @@ namespace uSrcTools
 				{
 				case SourceBSPStructs.GAMELUMP_STATIC_PROPS:
 					Debug.Log ("Static props version is "+gl.version);
-					if(gl.version<10)
+					if(gl.version<12) //12 not released yet
 						ParseStaticProps(gl);
 					break;
 				}
@@ -596,8 +596,16 @@ namespace uSrcTools
 					//prop.DisableX360=br.ReadBoolean();
 					br.BaseStream.Seek(4,SeekOrigin.Current);
 				}
+                if (gl.version >= 10)
+                {
+                    prop.FlagsEx = br.ReadInt32();
+                }
+                if (gl.version >= 11)
+                {
+                    prop.UniformScale = br.ReadSingle();
+                }
 
-				temp[i]=prop;
+                temp[i]=prop;
 			}
 			
 			return temp;

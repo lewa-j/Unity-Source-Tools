@@ -353,13 +353,15 @@ namespace uSrcTools
 		public byte   minGPULevel;
 		public byte   maxGPULevel;
 		public Color32 diffuseModulation;
-		/*// since v7
+        /*// since v7
 		public Color32         DiffuseModulation; // per instance color and alpha modulation
-		// since v10
-		public float           unknown; 
-		*/
-		// since v9
-		public bool            DisableX360;     // if true, don't show on XBox 360
+        */
+        // since v10
+        public int FlagsEx;
+        // since v11
+        public float UniformScale;      // Prop scale
+        // since v9
+        public bool            DisableX360;     // if true, don't show on XBox 360
 		//3 unknown bytes
 	}
 }
