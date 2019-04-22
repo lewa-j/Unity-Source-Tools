@@ -14,8 +14,9 @@ namespace uSrcTools
 		}
 
 		public string path = @"I:\uSource";
-		//public string TempPath = @"I:\Program Files/Half-Life 2";
-		public string game = @"hl2";
+        public string assetsPath = @"I:\uSource";
+        //public string TempPath = @"I:\Program Files/Half-Life 2";
+        public string game = @"hl2";
 		public bool haveMod = false;
 		public string mod = @"portal";
 		public float worldScale = 0.026f;

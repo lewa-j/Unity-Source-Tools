@@ -232,8 +232,23 @@ namespace uSrcTools
 			{
 				return path + filename;
 			}
-			
-			Debug.LogWarning (uSrcSettings.Inst.path + "/" + uSrcSettings.Inst.game + "/" + filename+": Not Found");
+
+            //try to find in assetsPath
+            string[] paths = new string[] { "/", "/materials/", "/models/" };
+            foreach (string _path in paths)
+            {
+                path = uSrcSettings.Inst.assetsPath + _path;
+                if (CheckFile(path + filename))
+                {
+                    return path + filename;
+                }
+                else if (CheckFullFiles(filename))
+                {
+                    return path + filename;
+                }
+            }
+
+            Debug.LogWarning(filename + ": Not Found");
 			return null;
 		}
 	
@@ -287,8 +302,32 @@ namespace uSrcTools
 					return dirs[i] + filename;
 				}
 			}
-			
-			Debug.LogWarning ("Model material "+dirs[0]+filename+": Not Found");
+
+            //try to find in assetsPath
+            path = uSrcSettings.Inst.assetsPath + "/materials/";
+            if (CheckFile(path + filename))
+            {
+                return filename;
+            }
+            else if (CheckFullFiles("materials/" + filename))
+            {
+                return filename;
+            }
+
+            for (int i = 0; i < dirs.Length; i++)
+            {
+                path = uSrcSettings.Inst.assetsPath + "/materials/" + dirs[i];
+                if (CheckFile(path + filename))
+                {
+                    return dirs[i] + filename;
+                }
+                else if (CheckFullFiles("materials/" + dirs[i] + filename))
+                {
+                    return dirs[i] + filename;
+                }
+            }
+
+            Debug.LogWarning ("Model material "+dirs[0]+filename+": Not Found");
 			return dirs[0]+filename;
 		}
 	
