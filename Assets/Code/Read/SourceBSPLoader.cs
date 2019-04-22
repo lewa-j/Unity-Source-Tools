@@ -179,6 +179,8 @@ namespace uSrcTools
 
 							go.transform.position = prop.Origin;
 							go.transform.rotation = Quaternion.Euler (prop.Angles);
+                            if (prop.UniformScale != 0.0f)
+                                go.transform.localScale = new Vector3(prop.UniformScale, prop.UniformScale, prop.UniformScale);
 
 							SourceStudioModel tempModel = ResourceManager.Inst.GetModel (modelName);
 							if (tempModel == null)
