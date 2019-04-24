@@ -119,6 +119,7 @@ namespace uSrcTools
 					{
 						LM_UploadBlock ();
 						Debug.Log ("Loading " + lightmapsData.Count + " lightmap pages");
+                        LightmapSettings.lightmapsMode = LightmapsMode.NonDirectional;
 						LightmapSettings.lightmaps = lightmapsData.ToArray ();
 						lm_allocated = null;
 					}
