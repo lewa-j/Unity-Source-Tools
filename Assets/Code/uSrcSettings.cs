@@ -4,16 +4,16 @@ namespace uSrcTools
 {
 	public class uSrcSettings : MonoBehaviour
 	{
-		private static uSrcSettings inst;
-		public static uSrcSettings Inst
-		{
-			get
-			{
-				return inst??(inst = new GameObject ("uSrcSettings").AddComponent<uSrcSettings> ());
-			}
-		}
+        private static uSrcSettings inst;
+        public static uSrcSettings Inst
+        {
+            get
+            {
+                return inst ?? (inst = GameObject.FindGameObjectWithTag("WorldManager").GetComponent<uSrcSettings>());
+            }
+        }
 
-		public string path = @"I:\uSource";
+        public string path = @"I:\uSource";
         public string assetsPath = @"I:\uSource";
         //public string TempPath = @"I:\Program Files/Half-Life 2";
         public string game = @"hl2";

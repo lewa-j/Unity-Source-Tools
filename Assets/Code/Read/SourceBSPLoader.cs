@@ -50,7 +50,7 @@ namespace uSrcTools
 			if (loaded)
 			{
 				Debug.LogWarning ("Already loaded");
-				return;
+				//return; В теории это не требуется. Да и мешается.
 			}
 			LevelName = mapName;
 
