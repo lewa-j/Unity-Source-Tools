@@ -119,7 +119,7 @@ namespace uSrcTools
 					{
 						LM_UploadBlock ();
 						Debug.Log ("Loading " + lightmapsData.Count + " lightmap pages");
-                        LightmapSettings.lightmapsMode = LightmapsMode.NonDirectional;
+						LightmapSettings.lightmapsMode = LightmapsMode.NonDirectional;
 						LightmapSettings.lightmaps = lightmapsData.ToArray ();
 						lm_allocated = null;
 					}
@@ -180,8 +180,8 @@ namespace uSrcTools
 
 							go.transform.position = prop.Origin;
 							go.transform.rotation = Quaternion.Euler (prop.Angles);
-                            if (prop.UniformScale != 0.0f)
-                                go.transform.localScale = new Vector3(prop.UniformScale, prop.UniformScale, prop.UniformScale);
+							if (prop.UniformScale != 0.0f)
+								go.transform.localScale = new Vector3(prop.UniformScale, prop.UniformScale, prop.UniformScale);
 
 							SourceStudioModel tempModel = ResourceManager.Inst.GetModel (modelName);
 							if (tempModel == null)

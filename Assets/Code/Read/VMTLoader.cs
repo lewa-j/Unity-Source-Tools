@@ -66,7 +66,7 @@ namespace uSrcTools
 			for (int i=0; i<file.Length; i++) 
 			{
 				line=file[i].Trim().Trim('\t');
-                line = line.Replace("\"\"", "\" \"");
+				line = line.Replace("\"\"", "\" \"");
 
 				if(string.IsNullOrEmpty(line) || line.StartsWith("//"))
 					continue;

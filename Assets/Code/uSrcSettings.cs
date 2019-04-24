@@ -4,19 +4,19 @@ namespace uSrcTools
 {
 	public class uSrcSettings : MonoBehaviour
 	{
-        private static uSrcSettings inst;
-        public static uSrcSettings Inst
-        {
-            get
-            {
-                return inst ?? (inst = GameObject.FindGameObjectWithTag("WorldManager").GetComponent<uSrcSettings>());
-            }
-        }
+		private static uSrcSettings inst;
+		public static uSrcSettings Inst
+		{
+			get
+			{
+				return inst ?? (inst = GameObject.FindGameObjectWithTag("WorldManager").GetComponent<uSrcSettings>());
+			}
+		}
 
-        public string path = @"I:\uSource";
-        public string assetsPath = @"I:\uSource";
-        //public string TempPath = @"I:\Program Files/Half-Life 2";
-        public string game = @"hl2";
+		public string path = @"I:\uSource";
+		public string assetsPath = @"I:\uSource";
+		//public string TempPath = @"I:\Program Files/Half-Life 2";
+		public string game = @"hl2";
 		public bool haveMod = false;
 		public string mod = @"portal";
 		public float worldScale = 0.026f;
