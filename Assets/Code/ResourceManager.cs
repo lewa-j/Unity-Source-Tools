@@ -11,7 +11,7 @@ namespace uSrcTools
 		{
 			get
 			{
-				return inst??(inst=new GameObject("ResourceManager").AddComponent<ResourceManager>());
+				return inst??(inst= GameObject.FindGameObjectWithTag("WorldManager").GetComponent<ResourceManager>());
 			}
 		}
 
