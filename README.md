@@ -21,8 +21,9 @@ Plugin to import resources from the Source engine in Unity3D.
 
   **Step 9**: Depending on what you're doing, adjust the game, have mod, and mod settings. ![Example for Garrysmod](https://i.imgur.com/H4dKv2z.png) (This makes the script look for materials/models in D:\SteamLibrary\steamapps\common\GarrysMod\garrysmod)
 
-  **Step 10**: Tick Textures, Displacements, Props, Props Dynamic, Entities, and Gen Colliders. Do not tick Lightmaps.
+  **Step 10**: Tick Textures, Displacements, Props, Props Dynamic, Entities, and Gen Colliders.
 
+P.S: Lightmaps may not work correctly.
 That should work! If I got this wrong, please leave an issue.
 
 ## Original Readme Below

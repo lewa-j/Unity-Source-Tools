@@ -5,11 +5,34 @@ using UnityEngine;
 
 namespace uSrcTools
 {
+#if UNITY_EDITOR
+	[UnityEditor.CustomEditor(typeof(Test))]
+	public class MapLoader : UnityEditor.Editor
+	{
+		public override void OnInspectorGUI()
+		{
+			DrawDefaultInspector();
+			Test script = (Test)target;
+			if (GUILayout.Button("Load"))
+			{
+				script.Load();
+			}
+		}
+	}
+#endif
+
 	public class Test : MonoBehaviour
 		{
-			public static Test Inst;
+		private static Test inst;
+		public static Test Inst
+		{
+			get
+			{
+				return inst ?? (inst = GameObject.FindGameObjectWithTag("WorldManager").GetComponent<Test>());
+			}
+		}
 
-			public SourceBSPLoader bsp;
+		public SourceBSPLoader bsp;
 			public SourceStudioModel model;
 			public Material testMaterial;
 			public Texture cameraTexture;
@@ -32,36 +55,38 @@ namespace uSrcTools
 			public bool forceHDR = false;
 			public bool skipSky = true;
 
-			void Awake ()
+
+
+		void Start()
+		{
+			Load();
+		}
+
+		public void Load()
+		{
+			//player.transform.position = GameObject.Find ("info_player_start").transform.position;
+
+			if (loadMap)
 			{
-				Inst = this;
-			}
+				if (bsp == null)
+					bsp = GetComponent<SourceBSPLoader>();
 
-			void Start ()
+				bsp.Load(mapName);
+				if (exportMap)
 				{
-					//player.transform.position = GameObject.Find ("info_player_start").transform.position;
-
-					if (loadMap)
-					{
-						if (bsp == null)
-							bsp = GetComponent<SourceBSPLoader> ();
-
-						bsp.Load (mapName);
-						if (exportMap)
-						{
-							COLLADAExport.Geometry g = bsp.map.BSPToGeometry ();
-							print ("Exporting map.");
-							//COLLADAExport.Export(@"I:\uSource\test\"+mapName+".dae",g,false,false);
-							COLLADAExport.Export (exportLocation+mapName+".dae ",g,false,false);
+					COLLADAExport.Geometry g = bsp.map.BSPToGeometry();
+					print("Exporting map.");
+					//COLLADAExport.Export(@"I:\uSource\test\"+mapName+".dae",g,false,false);
+					COLLADAExport.Export(exportLocation + mapName + ".dae ", g, false, false);
 				}
 			}
 
-			if(loadModel)
+			if (loadModel)
 			{
-				GameObject modelObj=new GameObject("TestModel ");
-				model.Load (@"models / "+modelName+".mdl ");
+				GameObject modelObj = new GameObject("TestModel ");
+				model.Load(@"models / " + modelName + ".mdl ");
 				//model.GetInstance(modelObj,skinnedModel);
-				model.GetInstance (modelObj,skinnedModel,0);
+				model.GetInstance(modelObj, skinnedModel, 0);
 				//modelObj.transform.localEulerAngles=new Vector3(270,0,0);
 			}
 		}

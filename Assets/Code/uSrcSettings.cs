@@ -9,11 +9,12 @@ namespace uSrcTools
 		{
 			get
 			{
-				return inst??(inst = new GameObject ("uSrcSettings").AddComponent<uSrcSettings> ());
+				return inst ?? (inst = GameObject.FindGameObjectWithTag("WorldManager").GetComponent<uSrcSettings>());
 			}
 		}
 
 		public string path = @"I:\uSource";
+		public string assetsPath = @"I:\uSource";
 		//public string TempPath = @"I:\Program Files/Half-Life 2";
 		public string game = @"hl2";
 		public bool haveMod = false;
