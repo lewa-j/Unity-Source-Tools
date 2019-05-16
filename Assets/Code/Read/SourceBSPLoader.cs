@@ -651,7 +651,27 @@ namespace uSrcTools
 
 					string materialName = ConvertUtils.GetNullTerminatedString (map.texdataStringDataLump, map.texdataStringTableLump[texdata.nameStringTableID]);
 					materialName = materialName.ToLower ();
+					
+					//Leaked maps embedded texture paths are used twice in beta maps, tested on trainingroom.bsp
+                       			 //-Jhrino
+					 
+					if(map.header.version < 19)
+					{
+				           //Some maps do not even directly reference the proper level name for embedded materials
+                           	           //Tested on c17_01_13 with Leaknet + Megapatch
+					   if(materialName.Split('/')[1] != Test.Inst.mapName)
+					   {
+					      materialName = materialName.Replace(materialName.Split('/')[1], Test.Inst.mapName);
+					      materialName = materialName.Replace("maps/" + Test.Inst.mapName + "/", "");
+					   }
+					   else
+					   {
+					      materialName = materialName.Replace("maps/" + Test.Inst.mapName + "/maps/" + Test.Inst.mapName + "/", "");
+					      materialName = materialName.Split('_')[0];
+					   }
+					}
 
+					
 					GameObject texObj = new GameObject (materialName);
 					texObj.transform.SetParent (model.transform);
 					texObj.isStatic = true;
