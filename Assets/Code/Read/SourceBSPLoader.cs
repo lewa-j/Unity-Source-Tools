@@ -655,19 +655,28 @@ namespace uSrcTools
 					//Leaked maps embedded texture paths are used twice in beta maps, tested on trainingroom.bsp
                        			 //-Jhrino
 					 
-					if(map.header.version < 19)
+					if(map.header.version < 19 && materialName.Contains(Test.Inst.MapName)) // only check if its actually embedded, forgot about this one
 					{
-				           //Some maps do not even directly reference the proper level name for embedded materials
-                           	           //Tested on c17_01_13 with Leaknet + Megapatch
-					   if(materialName.Split('/')[1] != Test.Inst.mapName)
+				          //Some maps do not even directly reference the proper level name for embedded materials
+                       			 //Tested on c17_01_13 with Leaknet + Megapatch
+                        	           if (materialName.Split('/')[1] != Test.Inst.mapName)
 					   {
 					      materialName = materialName.Replace(materialName.Split('/')[1], Test.Inst.mapName);
 					      materialName = materialName.Replace("maps/" + Test.Inst.mapName + "/", "");
 					   }
-					   else
+					   //does the map repeat the embedded texture path TWICE
+					   if(materialName.Contains("maps/" + Test.Inst.mapName + "/maps/" + Test.Inst.mapName + "/"))
 					   {
 					      materialName = materialName.Replace("maps/" + Test.Inst.mapName + "/maps/" + Test.Inst.mapName + "/", "");
 					      materialName = materialName.Split('_')[0];
+					   }
+					   else // if not, its probably once?
+					   {
+					      if(materialName.Contains("maps/" + Test.Inst.mapName + "/"))
+					      {
+					        //Dont split anything and load the material with replace
+						materialName = materialName.Replace("maps/" + Test.Inst.mapName + "/", "");
+					      }
 					   }
 					}
 
