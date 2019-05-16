@@ -666,8 +666,20 @@ namespace uSrcTools
 					   }
 					   else
 					   {
+					     if(materialName.Contains("maps/" + Test.Inst.mapName + "/"))
+					     {
 					      materialName = materialName.Replace("maps/" + Test.Inst.mapName + "/maps/" + Test.Inst.mapName + "/", "");
 					      materialName = materialName.Split('_')[0];
+					     }
+			                    //Oh it gets even more complicated! Some maps just use the default, normal path
+                                           //Tested on city_test09
+					     else
+					     {
+					        if(materialName.Contains("maps/" + Test.Inst.mapName + "/"))
+						{
+						 materialName = materialName.Replace("maps/" + Test.Inst.mapName + "/", "");
+						 }
+					     }
 					   }
 					}
 
