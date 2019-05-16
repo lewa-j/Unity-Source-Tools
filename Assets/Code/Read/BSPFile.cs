@@ -253,6 +253,9 @@ namespace uSrcTools
 			for(int i=0;i<numFaces;i++)
 			{
 				bspface face = new bspface();
+				if(header.version == 18){
+					br.BaseStream.Seek(16, SeekOrigin.Current);
+				}
 				face.planenum = br.ReadUInt16();
 				face.side = br.ReadByte();
 				face.onNode = br.ReadByte();
