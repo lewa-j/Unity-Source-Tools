@@ -657,10 +657,17 @@ namespace uSrcTools
 					 
 					if(map.header.version < 19)
 					{
-					   if (materialName.Contains(Test.Inst.mapName) && materialName.Contains("maps"))	
+				           //Some maps do not even directly reference the proper level name for embedded materials
+                           	           //Tested on c17_01_13 with Leaknet + Megapatch
+					   if(materialName.Split('/')[1] != Test.Inst.mapName)
 					   {
-					   materialName = materialName.Replace("maps/" + Test.Inst.mapName + "/maps/" + Test.Inst.mapName + "/", "");
-                         	           materialName = materialName.Split('_')[0];
+					      materialName = materialName.Replace(materialName.Split('/')[1], Test.Inst.mapName);
+					      materialName = materialName.Replace("maps/" + Test.Inst.mapName + "/", "");
+					   }
+					   else
+					   {
+					      materialName = materialName.Replace("maps/" + Test.Inst.mapName + "/maps/" + Test.Inst.mapName + "/", "");
+					      materialName = materialName.Split('_')[0];
 					   }
 					}
 
