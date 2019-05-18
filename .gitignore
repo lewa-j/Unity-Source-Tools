@@ -1,9 +1,15 @@
-[Ll]ibrary/
 [Tt]emp/
 [Oo]bj/
 [Bb]uild/
 [Bb]uilds/
 Assets/AssetStoreTools*
+
+#Unity library folder
+[Ll]ibrary/*[Cc]ache
+[Ll]ibrary/[Ss]cript[Aa]ssemblies
+[Ll]ibrary/*.log
+[Ll]ibrary/*.asset
+[Ll]ibrary/[Ll]ast[Ss]cene[Mm]anager[Ss]etup.txt
 
 # Visual Studio cache directory
 .vs/
