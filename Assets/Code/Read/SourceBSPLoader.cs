@@ -290,7 +290,7 @@ namespace uSrcTools
 				if (data.Contains ("angles"))
 				{
 					string[] t = data[data.FindIndex (n => n == "angles") + 1].Split (' ');
-					angles = new Vector3 (-float.Parse (t[2]), -float.Parse (t[1]), -float.Parse (t[0]));
+					angles = new Vector3 (-ConvertUtils.floatParse(t[2]), -ConvertUtils.floatParse(t[1]), -ConvertUtils.floatParse(t[0]));
 					obj.transform.eulerAngles = angles;
 				}
 
@@ -334,11 +334,11 @@ namespace uSrcTools
 				if (data.Contains ("angles"))
 				{
 					string[] t = data[data.FindIndex (n => n == "angles") + 1].Split (' ');
-					angles = new Vector3 (-float.Parse (t[2]), -float.Parse (t[1]), -float.Parse (t[0]));
+					angles = new Vector3 (-ConvertUtils.floatParse(t[2]), -ConvertUtils.floatParse(t[1]), -ConvertUtils.floatParse(t[0]));
 				}
 
 				if (data.Contains ("pitch"))
-					angles.x = -float.Parse (data[data.FindIndex (n => n == "pitch") + 1]);
+					angles.x = -ConvertUtils.floatParse(data[data.FindIndex (n => n == "pitch") + 1]);
 
 				GameObject obj = new GameObject (targetname ?? className);
 				//if(className.Contains("light"))

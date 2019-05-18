@@ -9,12 +9,12 @@ namespace uSrcTools
 		{
 		public static Vector3 StringToVector(string input)
 		{
-			Vector3 origin = Vector3.zero;;
+			Vector3 origin = Vector3.zero;
 			string[] posStrings = input.Split(new char[]{' '});
 			if(posStrings.Length<3)
 				Debug.LogError("String "+input+" is not Vector3");
 			try{
-			origin = new Vector3(float.Parse(posStrings[0]),float.Parse(posStrings[2]),float.Parse(posStrings[1]))*uSrcSettings.Inst.worldScale;
+			    origin = new Vector3(floatParse(posStrings[0]),floatParse(posStrings[2]),floatParse(posStrings[1]))*uSrcSettings.Inst.worldScale;
 			}
 			catch(System.FormatException e)
 			{
@@ -113,6 +113,8 @@ namespace uSrcTools
 
 			return fOut;
 		}
+
+        public static float floatParse(string str) => float.Parse(str.Replace(".", ","));
 	}
 
 }
