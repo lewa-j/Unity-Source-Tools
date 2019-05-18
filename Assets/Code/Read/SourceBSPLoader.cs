@@ -195,6 +195,10 @@ namespace uSrcTools
 							{
 								tempModel.GetInstance (go, false, 0);
 							}
+							
+							// Collisions for static props, surprised it's not been implemented yet
+							if(uSrcSettings.Inst.genColliders)
+                           			        go.AddComponent<MeshCollider>();
 
 							go.isStatic = true;
 							Props.Add (go);
@@ -309,6 +313,7 @@ namespace uSrcTools
 				"sky_camera",
 				"point_camera",
 				"light_environment",
+				"prop_physics",
 				"prop_dynamic",
 				"prop_dynamic_override" /*,"point_viewcontrol"*/ ,
 				"info_target",
@@ -404,7 +409,35 @@ namespace uSrcTools
 						Test.Inst.startPos = obj.transform.position;
 					}
 				}
-
+				
+				//early prop_physics support
+				if(className == "prop_physics" && uSrcSettings.Inst.props)
+				{
+				  string modelName = "";
+				  
+				if (data.Contains("model"))
+                       		     modelName = data[data.FindIndex(n => n == "model") + 1];
+				     
+				SourceStudioModel tempModel = ResourceManager.Inst.GetModel(modelName);
+				if (tempModel == null || !tempModel.loaded)
+				{
+				     Debug.LogWarning("Error loading: " + modelName);
+				     GameObject prim = GameObject.CreatePrimitive(PrimitiveType.Cube);
+				     prim.name = modelName;
+				     prim.transform.parent = obj.transform;
+				     prim.transform.localPosition = Vector3.zero;
+				}
+				else
+				{
+			             tempModel.GetInstance(obj, true, 0);
+				}
+				
+				Rigidbody rb = obj.AddComponent<Rigidbody>();
+				
+				MeshCollider coll = obj.AddComponent<MeshCollider>();
+				coll.convex = true;
+				}
+				
 				if ((className == "prop_dynamic" | className == "prop_dynamic_override" | className == "prop_weighted_cube" | className == "prop_floor_button" | className == "prop_button") && uSrcSettings.Inst.propsDynamic)
 				{
 					string modelName = "";
