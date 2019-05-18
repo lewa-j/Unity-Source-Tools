@@ -21,7 +21,9 @@ Plugin to import resources from the Source engine in Unity3D.
 
   **Step 9**: Depending on what you're doing, adjust the game, have mod, and mod settings. 
   
-  ![Example for Garrysmod](https://i.imgur.com/H4dKv2z.png) (This makes the script look for materials/models in D:\SteamLibrary\steamapps\common\GarrysMod\garrysmod)
+  ![Example for Garrysmod](https://i.imgur.com/H4dKv2z.png) 
+  
+  (This makes the script look for materials/models in D:\SteamLibrary\steamapps\common\GarrysMod\garrysmod)
 
   **Step 10**: Tick Textures, Displacements, Props, Props Dynamic, Entities, and Gen Colliders.
 
