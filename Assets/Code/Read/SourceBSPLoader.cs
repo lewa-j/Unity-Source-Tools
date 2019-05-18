@@ -245,6 +245,7 @@ namespace uSrcTools
 
             }
 			GC.Collect ();
+            UnsetResources();
 		}
 
 		void ParseEntities (string input)
@@ -1239,5 +1240,20 @@ namespace uSrcTools
 			curLightmapTex = null;
 			curLightmap++;
 		}
+
+        void UnsetResources()
+        {
+            map = null;
+
+            mapObject = null;
+            modelsObject = null;
+            propsObject = null;
+            dispObject = null;
+            entObject = null;
+
+            models = null;
+            Props = null;
+            entities = null;
+        }
 	}
 }
