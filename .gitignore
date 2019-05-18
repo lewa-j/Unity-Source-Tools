@@ -10,6 +10,7 @@ Assets/AssetStoreTools*
 [Ll]ibrary/*.log
 [Ll]ibrary/*.asset
 [Ll]ibrary/[Ll]ast[Ss]cene[Mm]anager[Ss]etup.txt
+[Ll]ibrary/[Ee]ditor[Ii]nstance.json
 
 # Visual Studio cache directory
 .vs/
