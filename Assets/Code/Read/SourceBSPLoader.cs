@@ -655,7 +655,7 @@ namespace uSrcTools
 					//Leaked maps embedded texture paths are used twice in beta maps, tested on trainingroom.bsp
                        			 //-Jhrino
 					 
-					if(map.header.version < 19 && materialName.Contains(Test.Inst.MapName)) // only check if its actually embedded, forgot about this one
+					if(map.header.version < 19 && materialName.Contains(Test.Inst.mapName)) // only check if its actually embedded, forgot about this one
 					{
 				          //Some maps do not even directly reference the proper level name for embedded materials
                        			 //Tested on c17_01_13 with Leaknet + Megapatch
