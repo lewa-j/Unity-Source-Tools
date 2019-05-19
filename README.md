@@ -19,18 +19,23 @@ Plugin to import resources from the Source engine in Unity3D.
 
   **Step 8**: Set the Path to wherever your game folder is(example: D:\SteamLibrary\steamapps\common\GarrysMod )
 
-  **Step 9**: Depending on what you're doing, adjust the game, have mod, and mod settings. ![Example for Garrysmod](https://i.imgur.com/H4dKv2z.png) (This makes the script look for materials/models in D:\SteamLibrary\steamapps\common\GarrysMod\garrysmod)
+  **Step 9**: Depending on what you're doing, adjust the game, have mod, and mod settings. 
+  
+  ![Example for Garrysmod](https://i.imgur.com/H4dKv2z.png) 
+  
+  (This makes the script look for materials/models in D:\SteamLibrary\steamapps\common\GarrysMod\garrysmod)
 
   **Step 10**: Tick Textures, Displacements, Props, Props Dynamic, Entities, and Gen Colliders.
 
 P.S: Lightmaps may not work correctly.
+
 That should work! If I got this wrong, please leave an issue.
 
 ## Original Readme Below
 
-Author: vk.com/lewa_j
+Author: [vk.com/lewa_j](https://vk.com/lewa_j)
 
-VK Public: vk.com/uSrcTools
+VK Public: [vk.com/uSrcTools](https://vk.com/uSrcTools)
 
 
 Supported formats:

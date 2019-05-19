@@ -269,7 +269,7 @@ MonoBehaviour:
   transparentCutout: {fileID: 2100000, guid: 4daeeffb91a69fd4592a9c65ed9b46be, type: 2}
   sUnlit: {fileID: 10752, guid: 0000000000000000f000000000000000, type: 0}
   sUnlitTransparent: {fileID: 10750, guid: 0000000000000000f000000000000000, type: 0}
-  vertexLitMaterial: {fileID: 2100000, guid: 5d313a4a04b262a41a1646bbaa693b66, type: 2}
+  vertexLitMaterial: {fileID: 2100000, guid: 4084e883abd7b4d4d94df0209d2b87a3, type: 2}
   sSelfillum: {fileID: 4800000, guid: b37bce61fcee4b64c904d0077e6921e1, type: 3}
   sAdditive: {fileID: 200, guid: 0000000000000000f000000000000000, type: 0}
   sRefract: {fileID: 4800000, guid: a660959c3b17e2241bc01d690ffc2507, type: 3}

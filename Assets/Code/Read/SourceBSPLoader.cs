@@ -65,185 +65,187 @@ namespace uSrcTools
 				return;
 			}
 
-			BinaryReader BR = new BinaryReader (File.Open (path, FileMode.Open));
+            using (BinaryReader BR = new BinaryReader(File.Open(path, FileMode.Open)))
+            {
 
-			map = new BSPFile (BR, LevelName);
-			loaded = true;
+                map = new BSPFile(BR, LevelName);
+                loaded = true;
 
-			if (uSrcSettings.Inst.entities)
-			{
-				ParseEntities (map.entitiesLump);
-			}
+                if (uSrcSettings.Inst.entities)
+                {
+                    ParseEntities(map.entitiesLump);
+                }
 
-			//===================================================
-			mapObject = new GameObject (LevelName);
-			mapObject.isStatic = true;
+                //===================================================
+                mapObject = new GameObject(LevelName);
+                mapObject.isStatic = true;
 
-			modelsObject = new GameObject ("models");
-			modelsObject.transform.SetParent (mapObject.transform);
-			modelsObject.isStatic = true;
+                modelsObject = new GameObject("models");
+                modelsObject.transform.SetParent(mapObject.transform);
+                modelsObject.isStatic = true;
 
-			if (uSrcSettings.Inst.displacements)
-			{
-				dispObject = new GameObject ("displacements");
-				dispObject.transform.SetParent (mapObject.transform);
-			}
+                if (uSrcSettings.Inst.displacements)
+                {
+                    dispObject = new GameObject("displacements");
+                    dispObject.transform.SetParent(mapObject.transform);
+                }
 
-			if (uSrcSettings.Inst.props)
-			{
-				propsObject = new GameObject ("props");
-				propsObject.transform.SetParent (mapObject.transform);
-				propsObject.isStatic = true;
-			}
+                if (uSrcSettings.Inst.props)
+                {
+                    propsObject = new GameObject("props");
+                    propsObject.transform.SetParent(mapObject.transform);
+                    propsObject.isStatic = true;
+                }
 
-			switch (LoadType)
-			{
-				case Type.Full:
-					Debug.Log ("Start Loading World Faces");
+                switch (LoadType)
+                {
+                    case Type.Full:
+                        Debug.Log("Start Loading World Faces");
 
-					if (uSrcSettings.Inst.lightmaps & map.hasLightmaps)
-					{
-						lightmapsData = new List<LightmapData> ();
-						curLightmap = 0;
-						lm_allocated = new int[BLOCK_SIZE];
-						LM_InitBlock ();
-					}
+                        if (uSrcSettings.Inst.lightmaps & map.hasLightmaps)
+                        {
+                            lightmapsData = new List<LightmapData>();
+                            curLightmap = 0;
+                            lm_allocated = new int[BLOCK_SIZE];
+                            LM_InitBlock();
+                        }
 
-					models = new GameObject[map.modelsLump.Length];
-					for (int i = 0; i < map.modelsLump.Length; i++)
-					{
-						CreateModelObject (i);
-					}
+                        models = new GameObject[map.modelsLump.Length];
+                        for (int i = 0; i < map.modelsLump.Length; i++)
+                        {
+                            CreateModelObject(i);
+                        }
 
-					if (uSrcSettings.Inst.lightmaps & map.hasLightmaps)
-					{
-						LM_UploadBlock ();
-						Debug.Log ("Loading " + lightmapsData.Count + " lightmap pages");
-						LightmapSettings.lightmapsMode = LightmapsMode.NonDirectional;
-						LightmapSettings.lightmaps = lightmapsData.ToArray ();
-						lm_allocated = null;
-					}
-					Debug.Log ("Finish World Faces");
-					GC.Collect ();
+                        if (uSrcSettings.Inst.lightmaps & map.hasLightmaps)
+                        {
+                            LM_UploadBlock();
+                            Debug.Log("Loading " + lightmapsData.Count + " lightmap pages");
+                            LightmapSettings.lightmapsMode = LightmapsMode.NonDirectional;
+                            LightmapSettings.lightmaps = lightmapsData.ToArray();
+                            lm_allocated = null;
+                        }
+                        Debug.Log("Finish World Faces");
+                        GC.Collect();
 
-					if (uSrcSettings.Inst.entities)
-					{
-						Debug.Log ("Start Loading Entities");
+                        if (uSrcSettings.Inst.entities)
+                        {
+                            Debug.Log("Start Loading Entities");
 
-						entObject = new GameObject ("entities");
-						entObject.transform.parent = mapObject.transform;
+                            entObject = new GameObject("entities");
+                            entObject.transform.parent = mapObject.transform;
 
-						for (int i = 0; i < entities.Count; i++)
-						{
-							LoadEntity (i);
-						}
-						Debug.Log ("Finish Entities");
-					}
+                            for (int i = 0; i < entities.Count; i++)
+                            {
+                                LoadEntity(i);
+                            }
+                            Debug.Log("Finish Entities");
+                        }
 
-					if (uSrcSettings.Inst.displacements)
-					{
-						for (int m = 0; m < map.modelsLump.Length; m++)
-						{
-							for (int i = map.modelsLump[m].firstface; i < map.modelsLump[m].firstface + map.modelsLump[m].numfaces; i++)
-							{
-								if (map.facesLump[i].dispinfo != -1)
-								{
-									GenerateDispFaceObject (i, m);
-								}
-							}
-						}
-						Debug.Log ("Finish Displacements");
-					}
+                        if (uSrcSettings.Inst.displacements)
+                        {
+                            for (int m = 0; m < map.modelsLump.Length; m++)
+                            {
+                                for (int i = map.modelsLump[m].firstface; i < map.modelsLump[m].firstface + map.modelsLump[m].numfaces; i++)
+                                {
+                                    if (map.facesLump[i].dispinfo != -1)
+                                    {
+                                        GenerateDispFaceObject(i, m);
+                                    }
+                                }
+                            }
+                            Debug.Log("Finish Displacements");
+                        }
 
-					//Static props
-					if (uSrcSettings.Inst.props && map.staticPropsReaded)
-					{
-						Debug.Log ("Start Loading Static props");
-						for (int i = 0; i < map.StaticPropCount; i++)
-						{
-							bspStaticPropLump prop = map.StaticPropLump[i];
-							//Debug.Log ("static prop "+i+" model number is ("+prop.PropType+")");
-							if (prop.PropType > map.staticPropDict.Length)
-							{
-								Debug.LogWarning ("Static prop " + i + " model number is (" + prop.PropType + ")");
-								continue;
-							}
-							string modelName = map.staticPropDict[prop.PropType];
-							//Debug.Log ("static prop "+i+" model name is "+modelName);
-							GameObject go = new GameObject ();
-							//GameObject go = GameObject.CreatePrimitive(PrimitiveType.Cube);
-							go.name = "prop " + modelName;
-							go.transform.parent = propsObject.transform;
+                        //Static props
+                        if (uSrcSettings.Inst.props && map.staticPropsReaded)
+                        {
+                            Debug.Log("Start Loading Static props");
+                            for (int i = 0; i < map.StaticPropCount; i++)
+                            {
+                                bspStaticPropLump prop = map.StaticPropLump[i];
+                                //Debug.Log ("static prop "+i+" model number is ("+prop.PropType+")");
+                                if (prop.PropType > map.staticPropDict.Length)
+                                {
+                                    Debug.LogWarning("Static prop " + i + " model number is (" + prop.PropType + ")");
+                                    continue;
+                                }
+                                string modelName = map.staticPropDict[prop.PropType];
+                                //Debug.Log ("static prop "+i+" model name is "+modelName);
+                                GameObject go = new GameObject();
+                                //GameObject go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                                go.name = "prop " + modelName;
+                                go.transform.parent = propsObject.transform;
 
-							//GameObject testGo = (GameObject)MonoBehaviour.Instantiate(TempProp) as GameObject;
-							//testGo.transform.parent=go.transform;
+                                //GameObject testGo = (GameObject)MonoBehaviour.Instantiate(TempProp) as GameObject;
+                                //testGo.transform.parent=go.transform;
 
-							go.transform.position = prop.Origin;
-							go.transform.rotation = Quaternion.Euler (prop.Angles);
-							if (prop.UniformScale != 0.0f)
-								go.transform.localScale = new Vector3(prop.UniformScale, prop.UniformScale, prop.UniformScale);
+                                go.transform.position = prop.Origin;
+                                go.transform.rotation = Quaternion.Euler(prop.Angles);
+                                if (prop.UniformScale != 0.0f)
+                                    go.transform.localScale = new Vector3(prop.UniformScale, prop.UniformScale, prop.UniformScale);
 
-							SourceStudioModel tempModel = ResourceManager.Inst.GetModel (modelName);
-							if (tempModel == null)
-							{
-								//Debug.LogWarning("Error loading: "+modelName);
-								GameObject prim = GameObject.CreatePrimitive (PrimitiveType.Cube);
-								prim.transform.parent = go.transform;
-								prim.transform.localPosition = Vector3.zero;
-							}
-							else
-							{
-								tempModel.GetInstance (go, false, 0);
-							}
+                                SourceStudioModel tempModel = ResourceManager.Inst.GetModel(modelName);
+                                if (tempModel == null)
+                                {
+                                    //Debug.LogWarning("Error loading: "+modelName);
+                                    GameObject prim = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                                    prim.transform.parent = go.transform;
+                                    prim.transform.localPosition = Vector3.zero;
+                                }
+                                else
+                                {
+                                    tempModel.GetInstance(go, false, 0);
+                                }
 
-							go.isStatic = true;
-							Props.Add (go);
+                                go.isStatic = true;
+                                Props.Add(go);
 
-						}
-						Debug.Log ("Finish Static Props");
-					}
-					break;
+                            }
+                            Debug.Log("Finish Static Props");
+                        }
+                        break;
 
-				case Type.WithoutBatching:
-					for (int i = 0; i < map.modelsLump.Length; i++)
-					{
-						models[i] = new GameObject ("*" + i);
-						models[i].transform.SetParent (modelsObject.transform);
-						for (int f = map.modelsLump[i].firstface; f < map.modelsLump[i].firstface + map.modelsLump[i].numfaces; f++)
-						{
-							GenerateFaceObject (f).transform.SetParent (models[i].transform);
-						}
-					}
-					break;
+                    case Type.WithoutBatching:
+                        for (int i = 0; i < map.modelsLump.Length; i++)
+                        {
+                            models[i] = new GameObject("*" + i);
+                            models[i].transform.SetParent(modelsObject.transform);
+                            for (int f = map.modelsLump[i].firstface; f < map.modelsLump[i].firstface + map.modelsLump[i].numfaces; f++)
+                            {
+                                GenerateFaceObject(f).transform.SetParent(models[i].transform);
+                            }
+                        }
+                        break;
 
-				case Type.OnlyDisplacements:
-					if (uSrcSettings.Inst.displacements)
-					{
-						for (int i = 0; i < map.dispinfoLump.Length; i++)
-						{
-							GenerateDispFaceObject ((int) map.dispinfoLump[i].MapFace, 0);
-							Debug.Log ("FaceId: " + map.dispinfoLump[i].MapFace + " DispInfoId: " + i +
-								" DispVertStart: " + map.dispinfoLump[i].DispVertStart);
-						}
-					}
-					break;
+                    case Type.OnlyDisplacements:
+                        if (uSrcSettings.Inst.displacements)
+                        {
+                            for (int i = 0; i < map.dispinfoLump.Length; i++)
+                            {
+                                GenerateDispFaceObject((int)map.dispinfoLump[i].MapFace, 0);
+                                Debug.Log("FaceId: " + map.dispinfoLump[i].MapFace + " DispInfoId: " + i +
+                                    " DispVertStart: " + map.dispinfoLump[i].DispVertStart);
+                            }
+                        }
+                        break;
 
-				case Type.OneFace:
-					if (uSrcSettings.Inst.displacements & map.facesLump[faceId].dispinfo != -1)
-					{
-						GenerateDispFaceObject (faceId, 0);
-						Debug.Log ("FaceId: " + faceId + " DispInfoId: " + map.facesLump[faceId].dispinfo +
-							" DispVertStart: " + map.dispinfoLump[map.facesLump[faceId].dispinfo].DispVertStart);
-					}
-					else
-					{
-						GenerateFaceObject (faceId);
-					}
-					break;
-			}
+                    case Type.OneFace:
+                        if (uSrcSettings.Inst.displacements & map.facesLump[faceId].dispinfo != -1)
+                        {
+                            GenerateDispFaceObject(faceId, 0);
+                            Debug.Log("FaceId: " + faceId + " DispInfoId: " + map.facesLump[faceId].dispinfo +
+                                " DispVertStart: " + map.dispinfoLump[map.facesLump[faceId].dispinfo].DispVertStart);
+                        }
+                        else
+                        {
+                            GenerateFaceObject(faceId);
+                        }
+                        break;
+                }
 
-			BR.BaseStream.Dispose ();
+            }
 			GC.Collect ();
+            UnsetResources();
 		}
 
 		void ParseEntities (string input)
@@ -288,7 +290,7 @@ namespace uSrcTools
 				if (data.Contains ("angles"))
 				{
 					string[] t = data[data.FindIndex (n => n == "angles") + 1].Split (' ');
-					angles = new Vector3 (-float.Parse (t[2]), -float.Parse (t[1]), -float.Parse (t[0]));
+					angles = new Vector3 (-ConvertUtils.floatParse(t[2]), -ConvertUtils.floatParse(t[1]), -ConvertUtils.floatParse(t[0]));
 					obj.transform.eulerAngles = angles;
 				}
 
@@ -332,11 +334,11 @@ namespace uSrcTools
 				if (data.Contains ("angles"))
 				{
 					string[] t = data[data.FindIndex (n => n == "angles") + 1].Split (' ');
-					angles = new Vector3 (-float.Parse (t[2]), -float.Parse (t[1]), -float.Parse (t[0]));
+					angles = new Vector3 (-ConvertUtils.floatParse(t[2]), -ConvertUtils.floatParse(t[1]), -ConvertUtils.floatParse(t[0]));
 				}
 
 				if (data.Contains ("pitch"))
-					angles.x = -float.Parse (data[data.FindIndex (n => n == "pitch") + 1]);
+					angles.x = -ConvertUtils.floatParse(data[data.FindIndex (n => n == "pitch") + 1]);
 
 				GameObject obj = new GameObject (targetname ?? className);
 				//if(className.Contains("light"))
@@ -655,7 +657,7 @@ namespace uSrcTools
 					//Leaked maps embedded texture paths are used twice in beta maps, tested on trainingroom.bsp
                        			 //-Jhrino
 					 
-					if(map.header.version < 19 && materialName.Contains(Test.Inst.MapName)) // only check if its actually embedded, forgot about this one
+					if(map.header.version < 19 && materialName.Contains(Test.Inst.mapName)) // only check if its actually embedded, forgot about this one
 					{
 				          //Some maps do not even directly reference the proper level name for embedded materials
                        			 //Tested on c17_01_13 with Leaknet + Megapatch
@@ -1238,5 +1240,20 @@ namespace uSrcTools
 			curLightmapTex = null;
 			curLightmap++;
 		}
+
+        void UnsetResources()
+        {
+            map = null;
+
+            mapObject = null;
+            modelsObject = null;
+            propsObject = null;
+            dispObject = null;
+            entObject = null;
+
+            models = null;
+            Props = null;
+            entities = null;
+        }
 	}
 }

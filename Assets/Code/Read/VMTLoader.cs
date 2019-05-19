@@ -40,7 +40,7 @@ namespace uSrcTools
 			string path = "";
 
 			if (name.StartsWith("/"))
-				name = name.Replace ("/", "");
+				name = name.Substring(1);
 
 			if (name.Contains ("materials/"))
 				name = name.Replace ("materials/", "");
