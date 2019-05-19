@@ -157,6 +157,7 @@ namespace uSrcTools
                         }
 
                         //Static props
+                        if (Props == null) Props = new List<GameObject>();
                         if (uSrcSettings.Inst.props && map.staticPropsReaded)
                         {
                             Debug.Log("Start Loading Static props");
@@ -1254,6 +1255,9 @@ namespace uSrcTools
             models = null;
             Props = null;
             entities = null;
+
+            var test = Test.Inst;
+            if (test != null) test.bsp = null;
         }
 	}
 }
