@@ -47,6 +47,11 @@ namespace uSrcTools
 
 		public void Load (string mapName)
 		{
+		
+#if UNITY_WEBGL
+			print("Unity Source Tools does not support WebGL due to not being able to access local files.");
+			return;
+#endif
 			if (loaded)
 			{
 				Debug.LogWarning ("Already loaded");
