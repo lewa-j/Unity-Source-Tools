@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.IO;
+using System.Globalization;
 
 namespace uSrcTools
 {
@@ -114,7 +115,11 @@ namespace uSrcTools
 			return fOut;
 		}
 
-        public static float floatParse(string str) => float.Parse(str.Replace(".", ","));
+        public static float floatParse(string str) {
+            CultureInfo ci = (CultureInfo)CultureInfo.CurrentCulture.Clone();
+            ci.NumberFormat.CurrencyDecimalSeparator = ".";
+            return float.Parse(str, NumberStyles.Any, ci);
+        }
 	}
 
 }
