@@ -33,7 +33,16 @@ That should work! If I got this wrong, please leave an issue.
 
 ## Original Readme Below
 
-Author: [vk.com/lewa_j](https://vk.com/lewa_j)
+Author: [lewa_j](https://vk.com/lewa_j)
+
+Contributors: 
+
+[antimYT](https://vk.com/kaefmen)
+
+[Fronkln](https://github.com/Fronkln)
+
+[StamatisP](https://github.com/StamatisP)
+
 
 VK Public: [vk.com/uSrcTools](https://vk.com/uSrcTools)
 
