@@ -686,6 +686,8 @@ namespace uSrcTools
 						materialName = materialName.Replace("maps/" + Test.Inst.mapName + "/", "");
 					      }
 					   }
+					   
+					  materialName = materialName.Replace('ı', 'i'); // switching to NET 4.0 or WebGL causes i letters to be replaced by ı for some computers which means missing texture
 					}
 
 					
