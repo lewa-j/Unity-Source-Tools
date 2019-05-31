@@ -277,7 +277,41 @@ namespace uSrcTools
 
 			if (className == "worldspawn")
 			{
-				//WorldSpawn(data);
+			    if(data.Contains("skyname")) // Skybox loading
+			    {
+			       string sky = data[data.FindIndex(n => n == "skyname") + 1];
+			       Material SkyMaterial = new Material(Shader.Find("Skybox/6 Sided"));
+			       
+			       Texture FrontTex = VTFLoader.LoadFile("skybox/" + sky + "ft");
+                               FrontTex.wrapMode = TextureWrapMode.Repeat;
+			       
+			       Texture BackTex = VTFLoader.LoadFile("skybox/" + sky + "bk");
+                    	       BackTex.wrapMode = TextureWrapMode.Repeat;
+			       
+			       Texture LeftTex = VTFLoader.LoadFile("skybox/" + sky + "lf");
+                    	       LeftTex.wrapMode = TextureWrapMode.Repeat;
+			       
+			       Texture RightTex = VTFLoader.LoadFile("skybox/" + sky + "rt");
+                               RightTex.wrapMode = TextureWrapMode.Repeat;
+			       
+			       Texture DownTex = VTFLoader.LoadFile("skybox/" + sky + "dn");
+                    	       DownTex.wrapMode = TextureWrapMode.Repeat;
+			       
+			       Texture UpTex = VTFLoader.LoadFile("skybox/" + sky + "up");
+                               UpTex.wrapMode = TextureWrapMode.Repeat;
+			       
+			       //if any of you can code it so that the up texture of the skybox
+			       //gets rotated by 90 that would be perfect -Jhrino
+			       
+			      SkyMaterial.SetTexture("_FrontTex", FrontTex);
+                   	      SkyMaterial.SetTexture("_BackTex", BackTex);
+                              SkyMaterial.SetTexture("_LeftTex", LeftTex);
+                              SkyMaterial.SetTexture("_RightTex", RightTex);
+                              SkyMaterial.SetTexture("_DownTex", DownTex);
+                              SkyMaterial.SetTexture("_UpTex", UpTex);
+			      
+			      RenderSettings.skybox = SkyMaterial;	       
+			    }
 				return;
 			}
 
@@ -658,7 +692,7 @@ namespace uSrcTools
 					}
 
 					string materialName = ConvertUtils.GetNullTerminatedString (map.texdataStringDataLump, map.texdataStringTableLump[texdata.nameStringTableID]);
-					materialName = materialName.ToLower ();
+					materialName = materialName.ToLowerInvariant ();
 					
 					//Leaked maps embedded texture paths are used twice in beta maps, tested on trainingroom.bsp
                        			 //-Jhrino
@@ -795,7 +829,7 @@ namespace uSrcTools
 				else
 					materialName = new string (map.texdataStringDataLump, map.texdataStringTableLump[curTexData.nameStringTableID], map.texdataStringDataLump.Length - map.texdataStringTableLump[curTexData.nameStringTableID]);
 
-				materialName = materialName.ToLower ();
+				materialName = materialName.ToLowerInvariant ();
 
 				if (materialName.Contains ("\0"))
 					materialName = materialName.Remove (materialName.IndexOf ('\0'));
