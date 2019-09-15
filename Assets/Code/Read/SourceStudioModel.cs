@@ -96,15 +96,24 @@ namespace uSrcTools
 
             if (ResourceManager.GetPath (curModelName) == null)
 				return null;
-            if (ResourceManager.GetPath(curModelName.Replace(".mdl", ".vvd")) == null)
-                hasVVD = false;
+            if (ResourceManager.GetPath(curModelName.Replace(".mdl", ".vvd")) != null)
+                hasVVD = true;
+            else
+
+
+                Debug.Log("eh");
+
             if (ResourceManager.GetPath(curModelName.Replace(".mdl", ".dx90.vtx")) == null)
             {
-                if (ResourceManager.GetPath(curModelName.Replace(".mdl", ".dx80.vtx")) != null)
+                Debug.Log("DX9 of " + mdlHeader.Name + " not found!");
+
+                if (ResourceManager.GetPath(curModelName.Replace(".mdl", ".dx80.vtx")) != null) 
                     VTXType = SourceVTXType.DX8;
                 else
                 {
-                    if(ResourceManager.GetPath(curModelName.Replace(".mdl", ".dx7_2bone.vtx")) == null)
+                    Debug.Log("DX9 of " + mdlHeader.Name + " not found!");
+
+                    if (ResourceManager.GetPath(curModelName.Replace(".mdl", ".dx7_2bone.vtx")) == null)
                     {
                         VTXType = SourceVTXType.DX7;
                     }
@@ -118,6 +127,7 @@ namespace uSrcTools
             }
             else
             {
+                Debug.Log("pcht");
                 VTXType = SourceVTXType.DX9;
             }
 
@@ -145,7 +155,9 @@ namespace uSrcTools
 			ParseVtx (curModelName);
 
             loaded = true;
-	    
+
+            Debug.Log("Load fired up");
+
             return this;
 		}
 /*
@@ -335,7 +347,7 @@ namespace uSrcTools
 			*/
 			//modelMesh.subMeshCount = 1;
 			/*int indexCount = indexArray.Length;
-
+            
 			int[] tempIndex = new int[indexCount];
 			System.Buffer.BlockCopy(indexArray,0,tempIndex,0,indexCount*4);
 			//modelMesh.SetTriangles(tempIndex, 0);
@@ -537,15 +549,37 @@ namespace uSrcTools
 			Vector3 rootrot = new Vector3(0,-mdlBones[0].rot.x*Mathf.Rad2Deg,0);
 
 			go.transform.localEulerAngles+=rootrot;
-			
-			go.AddComponent<MeshFilter> ().mesh = modelMesh;
-			MeshRenderer mr = go.AddComponent<MeshRenderer> ();
-			mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided; //Making model shadows two-sided for better quality.
-			
-			modelMesh.RecalculateBounds ();
-			mr.materials = TempMats;
-			mr.lightmapIndex = 255;
-			
+
+            //Making component check to fix rare cases of nullreferenceexception
+
+            if (go.GetComponent<MeshFilter>() == null)
+                go.AddComponent<MeshFilter>().mesh = modelMesh;
+            else
+                go.GetComponent<MeshFilter>().mesh = modelMesh;
+
+            //Making component check to fix rare cases of nullreferenceexceptionz
+
+            if (go.GetComponent<MeshRenderer>() == null)
+            {
+                MeshRenderer mr = go.AddComponent<MeshRenderer>();
+
+                mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided; //Making model shadows two-sided for better quality.
+
+                modelMesh.RecalculateBounds();
+                mr.materials = TempMats;
+                mr.lightmapIndex = 255;
+            }
+            else
+            {
+                MeshRenderer mr = go.GetComponent<MeshRenderer>();
+
+                mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided; //Making model shadows two-sided for better quality.
+
+                modelMesh.RecalculateBounds();
+                mr.materials = TempMats;
+                mr.lightmapIndex = 255;
+            }
+		
 			used = true;
 		}
 
