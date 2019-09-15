@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+using UnityEngine;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -9,6 +10,9 @@ namespace uSrcTools
 	[System.Serializable]
 	public class SourceStudioModel// : MonoBehaviour
 	{
+
+        //Debugging for v36
+        string logname;
 
 		public string curModelName;
 
@@ -47,38 +51,102 @@ namespace uSrcTools
 		public bool drawArmature=false;
 		Material[] TempMats;
 
+        private bool hasVVD = false;
+
+
+        private enum SourceVTXType
+        {
+            NONE,
+            DX7,
+            DX8,
+            DX9
+        };
+
+        SourceVTXType VTXType;
+
 		public SourceStudioModel Load(string ModelName)
 		{
-			curModelName = ModelName;
-			if (ResourceManager.GetPath (curModelName) == null)
+            UnityEngine.Debug.unityLogger.logEnabled = true;
+
+            curModelName = ModelName;
+
+            string[] data = new string[10];
+
+            //LOGGING
+
+            logname = Application.dataPath + "/" + "log_model.txt";
+            if(!File.Exists(Application.dataPath + "/" + "log_model.txt"))
+                File.Create(Application.dataPath + "/" + "log_model.txt");
+
+            data[0] = mdlHeader.version.ToString();
+            data[1] = mdlHeader.checksum.ToString();
+            data[2] = mdlHeader.Name;
+            data[3] = mdlHeader.length.ToString();
+            data[4] = mdlHeader.hullmin.ToString();
+            data[5] = mdlHeader.hullmax.ToString();
+            data[6] = mdlHeader.bonesnum.ToString();
+            data[7] = mdlHeader.texturenum.ToString();
+
+            string text = Environment.NewLine + "MDL Name: " + data[2] + "\nMDL Version: " + data[0] + Environment.NewLine + "MDL Length: " + data[3] + Environment.NewLine + "MDL Checksum: " + data[1] + Environment.NewLine + "MDL Minimum Hull:" + data[4] + Environment.NewLine + "MDL Maximum Hull: " + data[5] + Environment.NewLine + "MDL Bone Count: " + data[6] + Environment.NewLine + "MDL Texture Count: " + data[7];
+            
+
+            File.AppendAllText(logname, Environment.NewLine + text); 
+
+            // END OF LOGGING
+
+            if (ResourceManager.GetPath (curModelName) == null)
 				return null;
-			if (ResourceManager.GetPath (curModelName.Replace (".mdl", ".vvd")) == null)
-				return null;
-			if (ResourceManager.GetPath (curModelName.Replace (".mdl", ".dx90.vtx")) == null)
-				return null;
+            if (ResourceManager.GetPath(curModelName.Replace(".mdl", ".vvd")) == null)
+                hasVVD = false;
+            if (ResourceManager.GetPath(curModelName.Replace(".mdl", ".dx90.vtx")) == null)
+            {
+                if (ResourceManager.GetPath(curModelName.Replace(".mdl", ".dx80.vtx")) != null)
+                    VTXType = SourceVTXType.DX8;
+                else
+                {
+                    if(ResourceManager.GetPath(curModelName.Replace(".mdl", ".dx7_2bone.vtx")) == null)
+                    {
+                        VTXType = SourceVTXType.DX7;
+                    }
+                    else
+                    {
+                        Debug.LogError("Model has no VTX data!");
+                        VTXType = SourceVTXType.NONE;
+                        return null;
+                    }
+                }
+            }
+            else
+            {
+                VTXType = SourceVTXType.DX9;
+            }
+
+            Debug.Log(VTXType);
+                
 
 			//studiobodypart[] mdlBodyParts;
 			if(!ParseMdl (curModelName))
 			{
+                Debug.LogError("Parse failed");
 				return null;
 			}
 			
 			LoadSkin (0);
-			
+
 			//public int vertCount;
 			//Vector3[] vertArray;
 			//Vector3[] Normals;
 			//Vector2[] UV;
 			//int[] indexArray;
 			
-			
+			if(hasVVD)
 			ParseVvd (curModelName);
-			
+			if(VTXType != SourceVTXType.NONE)
 			ParseVtx (curModelName);
 
-			loaded = true;
-
-			return this;
+            loaded = true;
+	    
+            return this;
 		}
 /*
 		public void GetInstance(GameObject go, bool skinned)
@@ -576,6 +644,7 @@ namespace uSrcTools
 
 		studiohdr_t ReadHeader(BinaryReader BR)
 		{
+
 			studiohdr_t hdr = new studiohdr_t ();
 
 			hdr.id = BR.ReadChars(4);
@@ -884,6 +953,7 @@ namespace uSrcTools
 
 		public void ParseVvd(string name)
 		{
+
 			name = name.Replace (".mdl", ".vvd");
 
 			string path = ResourceManager.GetPath (name);
@@ -1116,7 +1186,26 @@ namespace uSrcTools
 
 		public void ParseVtx(string name)
 		{
-			name = name.Replace (".mdl", ".dx90.vtx");
+            switch (VTXType)
+            {
+                case SourceVTXType.NONE:
+                    return;
+
+                case SourceVTXType.DX7:
+                    name = name.Replace(".mdl", ".dx7_2bone.vtx");
+                    break;
+
+                case SourceVTXType.DX8:
+                    name = name.Replace(".mdl", ".dx80.vtx");
+                    break;
+
+                case SourceVTXType.DX9:
+                    name = name.Replace(".mdl", ".dx90.vtx");
+                    break;
+            }
+
+            name = name.Replace(" ", "");
+
 			string path = ResourceManager.GetPath (name);
 
 			//_indexArray = null;
@@ -1149,6 +1238,7 @@ namespace uSrcTools
 			hdr.materialReplacementListOffset=BR.ReadInt32 ();
 			hdr.numBobyParts=BR.ReadInt32 ();
 			hdr.bodyPartOffset=BR.ReadInt32 ();
+
 			
 			return hdr;
 		}
