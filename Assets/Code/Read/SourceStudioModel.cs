@@ -460,8 +460,11 @@ namespace uSrcTools
 				modelMesh.name = curModelName;
 				
 				modelMesh.vertices = vertArray;
-				if(modelMesh.vertices.Length==0)
-					Debug.LogWarning ("Error with model "+modelName);
+                if (modelMesh.vertices.Length == 0)
+                {
+                    Debug.LogWarning("Error with model " + modelName);
+                    return;
+                }
 								
 				modelMesh.normals = Normals;
 				modelMesh.uv = UV;
