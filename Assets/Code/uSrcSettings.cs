@@ -12,7 +12,7 @@ namespace uSrcTools
 				return inst ?? (inst = GameObject.FindGameObjectWithTag("WorldManager").GetComponent<uSrcSettings>());
 			}
 		}
-
+		public bool extraDebugging = false;
 		public string path = @"I:\uSource";
 		public string assetsPath = @"I:\uSource";
 		//public string TempPath = @"I:\Program Files/Half-Life 2";
