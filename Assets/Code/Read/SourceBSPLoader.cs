@@ -361,7 +361,8 @@ namespace uSrcTools
 				"func_illusionary",
 				"prop_button",
 				"prop_floor_button",
-				"prop_weighted_cube"
+				"prop_weighted_cube",
+				"prop_physics"
 			};
 
 			if (testEnts.Contains (className))
@@ -446,8 +447,7 @@ namespace uSrcTools
 						Test.Inst.startPos = obj.transform.position;
 					}
 				}
-
-				if ((className == "prop_dynamic" | className == "prop_dynamic_override" | className == "prop_weighted_cube" | className == "prop_floor_button" | className == "prop_button") && uSrcSettings.Inst.propsDynamic)
+				if ((className == "prop_dynamic" | className == "prop_dynamic_override" | className == "prop_weighted_cube" | className == "prop_floor_button" | className == "prop_button" | className == "prop_physics") && uSrcSettings.Inst.propsDynamic)
 				{
 					string modelName = "";
 
@@ -479,6 +479,11 @@ namespace uSrcTools
 					else
 					{
 						tempModel.GetInstance (obj, true, 0);
+					}
+					if(className == "prop_physics")
+					{
+						obj.GetComponent<MeshCollider>().convex = true;
+						obj.AddComponent<Rigidbody>();
 					}
 
 				}
