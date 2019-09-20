@@ -67,8 +67,8 @@ namespace uSrcTools
         public void LogModelData(string[] data)
         {
             logname = Application.dataPath + "/" + "log_model.txt";
-            if (!File.Exists(Application.dataPath + "/" + "log_model.txt"))
-                File.Create(Application.dataPath + "/" + "log_model.txt");
+            if (!File.Exists(logname))
+                File.Create(logname);
 
             string text = Environment.NewLine + "MDL Name: " + data[2] + "\nMDL Version: " + data[0] + Environment.NewLine + "MDL VTX: " + VTXType + Environment.NewLine + "MDL Length: " + data[3] + Environment.NewLine + "MDL Checksum: " + data[1] + Environment.NewLine + "MDL Minimum Hull:" + data[4] + Environment.NewLine + "MDL Maximum Hull: " + data[5] + Environment.NewLine + "MDL Bone Count: " + data[6] + Environment.NewLine + "MDL Texture Count: " + data[7];
             File.AppendAllText(logname, Environment.NewLine + text);
