@@ -10,8 +10,7 @@ namespace uSrcTools
 	[System.Serializable]
 	public class SourceStudioModel// : MonoBehaviour
 	{
-
-        //Debugging for v36
+        //Model debugging filename
         string logname;
 
 		public string curModelName;
@@ -64,35 +63,39 @@ namespace uSrcTools
 
         SourceVTXType VTXType;
 
+        public void LogModelData(string[] data)
+        {
+            logname = Application.dataPath + "/" + "log_model.txt";
+            if (!File.Exists(logname))
+                File.Create(logname);
+
+            string text = Environment.NewLine + "MDL Name: " + data[2] + "\nMDL Version: " + data[0] + Environment.NewLine + "MDL Length: " + data[3] + Environment.NewLine + "MDL Checksum: " + data[1] + Environment.NewLine + "MDL Minimum Hull:" + data[4] + Environment.NewLine + "MDL Maximum Hull: " + data[5] + Environment.NewLine + "MDL Bone Count: " + data[6] + Environment.NewLine + "MDL Texture Count: " + data[7];
+            File.AppendAllText(logname, Environment.NewLine + text);
+        }
+
 		public SourceStudioModel Load(string ModelName)
 		{
+            if(uSrcSettings.Inst.extraDebugging)
             UnityEngine.Debug.unityLogger.logEnabled = true;
 
             curModelName = ModelName;
 
-            string[] data = new string[10];
+            if (uSrcSettings.Inst.extraDebugging)
+            {
 
-            //LOGGING
+                string[] data = new string[10];
 
-            logname = Application.dataPath + "/" + "log_model.txt";
-            if(!File.Exists(Application.dataPath + "/" + "log_model.txt"))
-                File.Create(Application.dataPath + "/" + "log_model.txt");
+                data[0] = mdlHeader.version.ToString();
+                data[1] = mdlHeader.checksum.ToString();
+                data[2] = mdlHeader.Name;
+                data[3] = mdlHeader.length.ToString();
+                data[4] = mdlHeader.hullmin.ToString();
+                data[5] = mdlHeader.hullmax.ToString();
+                data[6] = mdlHeader.bonesnum.ToString();
+                data[7] = mdlHeader.texturenum.ToString();
 
-            data[0] = mdlHeader.version.ToString();
-            data[1] = mdlHeader.checksum.ToString();
-            data[2] = mdlHeader.Name;
-            data[3] = mdlHeader.length.ToString();
-            data[4] = mdlHeader.hullmin.ToString();
-            data[5] = mdlHeader.hullmax.ToString();
-            data[6] = mdlHeader.bonesnum.ToString();
-            data[7] = mdlHeader.texturenum.ToString();
-
-            string text = Environment.NewLine + "MDL Name: " + data[2] + "\nMDL Version: " + data[0] + Environment.NewLine + "MDL Length: " + data[3] + Environment.NewLine + "MDL Checksum: " + data[1] + Environment.NewLine + "MDL Minimum Hull:" + data[4] + Environment.NewLine + "MDL Maximum Hull: " + data[5] + Environment.NewLine + "MDL Bone Count: " + data[6] + Environment.NewLine + "MDL Texture Count: " + data[7];
-            
-
-            File.AppendAllText(logname, Environment.NewLine + text); 
-
-            // END OF LOGGING
+                LogModelData(data);
+            }
 
             if (ResourceManager.GetPath (curModelName) == null)
 				return null;
@@ -100,18 +103,15 @@ namespace uSrcTools
                 hasVVD = true;
             else
 
-
-                Debug.Log("eh");
-
             if (ResourceManager.GetPath(curModelName.Replace(".mdl", ".dx90.vtx")) == null)
             {
-                Debug.Log("DX9 of " + mdlHeader.Name + " not found!");
+                Debug.LogWarning("DX9 of " + mdlHeader.Name + " not found!");
 
                 if (ResourceManager.GetPath(curModelName.Replace(".mdl", ".dx80.vtx")) != null) 
                     VTXType = SourceVTXType.DX8;
                 else
                 {
-                    Debug.Log("DX9 of " + mdlHeader.Name + " not found!");
+                    Debug.LogWarning("DX8 of " + mdlHeader.Name + " not found!");
 
                     if (ResourceManager.GetPath(curModelName.Replace(".mdl", ".dx7_2bone.vtx")) == null)
                     {
@@ -155,8 +155,6 @@ namespace uSrcTools
 			ParseVtx (curModelName);
 
             loaded = true;
-
-            Debug.Log("Load fired up");
 
             return this;
 		}
@@ -555,34 +553,26 @@ namespace uSrcTools
 
             //Making component check to fix rare cases of nullreferenceexception
 
+            MeshRenderer mr;
+
+            if (go.GetComponent<MeshRenderer>() == null)
+                mr = go.AddComponent<MeshRenderer>();
+            else
+                mr = go.GetComponent<MeshRenderer>();
+
+            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided; //Making model shadows two-sided for better quality.
+
+            modelMesh.RecalculateBounds();
+            mr.materials = TempMats;
+            mr.lightmapIndex = 255;
+
+
+
             if (go.GetComponent<MeshFilter>() == null)
                 go.AddComponent<MeshFilter>().mesh = modelMesh;
             else
                 go.GetComponent<MeshFilter>().mesh = modelMesh;
 
-            //Making component check to fix rare cases of nullreferenceexceptionz
-
-            if (go.GetComponent<MeshRenderer>() == null)
-            {
-                MeshRenderer mr = go.AddComponent<MeshRenderer>();
-
-                mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided; //Making model shadows two-sided for better quality.
-
-                modelMesh.RecalculateBounds();
-                mr.materials = TempMats;
-                mr.lightmapIndex = 255;
-            }
-            else
-            {
-                MeshRenderer mr = go.GetComponent<MeshRenderer>();
-
-                mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.TwoSided; //Making model shadows two-sided for better quality.
-
-                modelMesh.RecalculateBounds();
-                mr.materials = TempMats;
-                mr.lightmapIndex = 255;
-            }
-		
 			used = true;
 		}
 
@@ -990,7 +980,7 @@ namespace uSrcTools
 
 		public void ParseVvd(string name)
 		{
-
+            name = name.Replace(" ", "");
 			name = name.Replace (".mdl", ".vvd");
 
 			string path = ResourceManager.GetPath (name);
