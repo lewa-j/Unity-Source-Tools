@@ -892,6 +892,12 @@ namespace uSrcTools
 			mf.sharedMesh.uv = f.uv;
 			mf.sharedMesh.colors32 = f.cols;
 
+           	        if(uSrcSettings.Inst.lightmaps)
+			{
+               			mr.lightmapIndex = curLightmap;
+				mf.sharedMesh.uv2 = f.uv2;
+			}
+				 
 			if (uSrcSettings.Inst.textures)
 			{
 				bsptexdata curTexData = map.texdataLump[map.texinfosLump[map.facesLump[index].texinfo].texdata];
@@ -1037,6 +1043,7 @@ namespace uSrcTools
 			Vector3[] vertices = new Vector3[4];
 			List<Vector3> disp_verts = new List<Vector3> ();
 			List<Vector2> UVs = new List<Vector2> ();
+			List<Vector2> UV2s = new List<Vector2> ();			
 			List<Color32> cols = new List<Color32> ();
 			List<int> indices = new List<int> ();
 
@@ -1044,6 +1051,19 @@ namespace uSrcTools
 
 			bsptexinfo curTexInfo = map.texinfosLump[curFace.texinfo];
 			bsptexdata curTexData = map.texdataLump[curTexInfo.texdata];
+		        
+			int tiFlags = curTexInfo.flags;
+
+        	        int lightmapW = curFace.LightmapTextureSizeInLuxels[0] + 1;
+                        int lightmapH = curFace.LightmapTextureSizeInLuxels[1] + 1;
+
+                        int lmx = 0, lmy = 0;
+
+          	        if (uSrcSettings.Inst.lightmaps && (tiFlags & SourceBSPStructs.SURF_NOLIGHT) == 0)
+                        {
+                            if (!LM_AllocBlock(lightmapW, lightmapH, out lmx, out lmy))
+                                Debug.LogWarning("LM_AllocBlock failed on displacement face " + faceIndex);
+         	        }
 
 			int fEdge = curFace.firstedge;
 
@@ -1135,7 +1155,20 @@ namespace uSrcTools
 					float tU = Vector3.Dot (flatVertex, curTexInfo.texvecs) + (curTexInfo.texoffs);
 					float tV = Vector3.Dot (flatVertex, curTexInfo.texvect) + (curTexInfo.texofft);
 					UVs.Add (new Vector2 (tU * scaleU, tV * scaleV));
+					
+                   			float U, V;
+                  		        if ((tiFlags & SourceBSPStructs.SURF_NOLIGHT) == 0)
+                                        {
+                                            U = Vector3.Dot(flatVertex, curTexInfo.lightvecs) + curTexInfo.lightoffs + 0.5f - curFace.LightmapTextureMinsInLuxels[0] + lmx;
+                                            V = Vector3.Dot(flatVertex, curTexInfo.lightvect) + curTexInfo.lightofft + 0.5f - curFace.LightmapTextureMinsInLuxels[1] + lmy;
+                   	                }
+                   		        else
+                                        {
+                                            U = BLOCK_SIZE - 2;
+                       			    V = BLOCK_SIZE - 2;
+                  		        }
 
+                 		        UV2s.Add(new Vector2(U / BLOCK_SIZE, V / BLOCK_SIZE));
 					cols.Add (new Color32 ((byte) (dispVert.alpha), 0, 0, 0));
 				}
 			}
@@ -1186,7 +1219,7 @@ namespace uSrcTools
 
 			f.points = disp_verts.ToArray ();
 			f.uv = UVs.ToArray ();
-			//f.uv2 = UV2s;
+		        f.uv2 = UV2s.ToArray() ;
 			f.cols = cols.ToArray ();
 			f.triangles = indices.ToArray ();
 
