@@ -1069,6 +1069,8 @@ namespace uSrcTools
                   		     if (!LM_AllocBlock(lightmapW, lightmapH, out lmx, out lmy))
                        			 Debug.LogWarning("LM_AllocBlock failed on displacement face " + faceIndex);
                			 }
+				 
+				 CreateLightmapTex(lightmapW, lightmapH, lmx, lmy, faceIndex);
          	        }
 
 			int fEdge = curFace.firstedge;
@@ -1223,10 +1225,6 @@ namespace uSrcTools
 					}
 				}
 			}
-
-
-         	        if (uSrcSettings.Inst.lightmaps && (tiFlags & SourceBSPStructs.SURF_NOLIGHT) == 0)
-           		     CreateLightmapTex(lightmapW, lightmapH, lmx, lmy, faceIndex);
 
 			for (int i = 0; i < disp_verts.Count; i++)
 			{
