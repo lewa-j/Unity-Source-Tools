@@ -1051,26 +1051,25 @@ namespace uSrcTools
 
 			bsptexinfo curTexInfo = map.texinfosLump[curFace.texinfo];
 			bsptexdata curTexData = map.texdataLump[curTexInfo.texdata];
-		        
+
+            int tiFlags = curTexInfo.flags;
 			int tiFlags = curTexInfo.flags;
 
             int lightmapW = curFace.LightmapTextureSizeInLuxels[0] + 1;
             int lightmapH = curFace.LightmapTextureSizeInLuxels[1] + 1;
 
-            int lmx = 0, lmy = 0;
+            int lmx = 0; lmy = 0;
 
-            if (uSrcSettings.Inst.lightmaps && (tiFlags & SourceBSPStructs.SURF_NOLIGHT) == 0)
+            if (usrcSettings.Inst.lightmaps && (tiFlags & SourceBSPStructs.SURF_NOLIGHT) == 0)
             {
                 if (!LM_AllocBlock(lightmapW, lightmapH, out lmx, out lmy))
                 {
-                  LM_UploadBlock();
-                  LM_InitBlock();
-    
-                   if (!LM_AllocBlock(lightmapW, lightmapH, out lmx, out lmy))
-                         Debug.LogWarning("LM_AllocBlock failed on displacement face " + faceIndex);
+                    LM_UploadBlock();
+                    LM_InitBlock();
+
+                    if (!LM_AllocBlock(lightmapW, lightmapH, out lmx, out lmy))
+                        Debug.LogWarning("LM_AllocBlock failed on displacement face " + faceIndex);
                 }
-                 
-                CreateLightmapTex(lightmapW, lightmapH, lmx, lmy, faceIndex);
             }
 
 			int fEdge = curFace.firstedge;
@@ -1114,7 +1113,7 @@ namespace uSrcTools
 			Vector3 leftEdge = vertices[1] - vertices[0];
 			Vector3 rightEdge = vertices[2] - vertices[3];
 
-			int numEdgeVertices = (1 << curDisp.power) + 1;
+            int numEdgeVertices = (1 << curDisp.power) + 1;
 
 			float subdivideScale = 1.0f / (float) (numEdgeVertices - 1);
 
@@ -1239,7 +1238,7 @@ namespace uSrcTools
 
 			f.points = disp_verts.ToArray ();
 			f.uv = UVs.ToArray ();
-		    f.uv2 = UV2s.ToArray() ;
+           f.uv2 = UV2s.ToArray ();
 			f.cols = cols.ToArray ();
 			f.triangles = indices.ToArray ();
 
