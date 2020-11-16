@@ -1054,24 +1054,24 @@ namespace uSrcTools
 		        
 			int tiFlags = curTexInfo.flags;
 
-        	        int lightmapW = curFace.LightmapTextureSizeInLuxels[0] + 1;
-                        int lightmapH = curFace.LightmapTextureSizeInLuxels[1] + 1;
+            int lightmapW = curFace.LightmapTextureSizeInLuxels[0] + 1;
+            int lightmapH = curFace.LightmapTextureSizeInLuxels[1] + 1;
 
-                        int lmx = 0, lmy = 0;
+            int lmx = 0, lmy = 0;
 
-          	        if (uSrcSettings.Inst.lightmaps && (tiFlags & SourceBSPStructs.SURF_NOLIGHT) == 0)
-                        {
-          	                 if (!LM_AllocBlock(lightmapW, lightmapH, out lmx, out lmy))
-             		         {
-                  		     LM_UploadBlock();
-                                     LM_InitBlock();
- 	
-                  		     if (!LM_AllocBlock(lightmapW, lightmapH, out lmx, out lmy))
-                       			 Debug.LogWarning("LM_AllocBlock failed on displacement face " + faceIndex);
-               			 }
-				 
-				 CreateLightmapTex(lightmapW, lightmapH, lmx, lmy, faceIndex);
-         	        }
+            if (uSrcSettings.Inst.lightmaps && (tiFlags & SourceBSPStructs.SURF_NOLIGHT) == 0)
+            {
+                if (!LM_AllocBlock(lightmapW, lightmapH, out lmx, out lmy))
+                {
+                  LM_UploadBlock();
+                  LM_InitBlock();
+    
+                   if (!LM_AllocBlock(lightmapW, lightmapH, out lmx, out lmy))
+                         Debug.LogWarning("LM_AllocBlock failed on displacement face " + faceIndex);
+                }
+                 
+                CreateLightmapTex(lightmapW, lightmapH, lmx, lmy, faceIndex);
+            }
 
 			int fEdge = curFace.firstedge;
 
@@ -1137,23 +1137,23 @@ namespace uSrcTools
 			float scaleU = (float) 1f / curTexData.width;
 			float scaleV = (float) 1f / curTexData.height;
 			
-			float invHeight = 1.0f / (numEdgeVertices - 1);
+            float invHeight = 1.0f / (numEdgeVertices - 1);
 
-          	Vector2[] origLMUV = new Vector2[4];
+            Vector2[] origLMUV = new Vector2[4];
             origLMUV[0] = new Vector2(0.5f, 0.5f);
-           	origLMUV[1] = new Vector2(0.5f, lightmapH - 0.5f);
+            origLMUV[1] = new Vector2(0.5f, lightmapH - 0.5f);
             origLMUV[2] = new Vector2(lightmapW - 0.5f, lightmapH - 0.5f);
-           	origLMUV[3] = new Vector2(lightmapW - 0.5f, 0.5f);
-			
-			for (int j = 0; j < 4; j++)
+            origLMUV[3] = new Vector2(lightmapW - 0.5f, 0.5f);
+            
+            for (int j = 0; j < 4; j++)
                 origLMUV[j] = (origLMUV[j] + new Vector2(lmx, lmy)) / (float)BLOCK_SIZE;
-			
-		    Vector2[] dXlmuv = new Vector2[2]
-       	    {
-              	(origLMUV[1] - origLMUV[0]) * invHeight,
+            
+            Vector2[] dXlmuv = new Vector2[2]
+            {
+                (origLMUV[1] - origLMUV[0]) * invHeight,
                 (origLMUV[2] - origLMUV[3]) * invHeight
-         	};
-			
+            };
+            
 			for (int i = 0; i < numEdgeVertices; i++)
 			{
 				leftEnd = leftEdgeStep * (float) i;
@@ -1164,11 +1164,11 @@ namespace uSrcTools
 				leftRightSeg = rightEnd - leftEnd;
 				leftRightStep = leftRightSeg * subdivideScale;
 				
-			    Vector2[] dYlmuv = new Vector2[2]
+                Vector2[] dYlmuv = new Vector2[2]
                 {
                    origLMUV[0]+dXlmuv[0]*(float)i,
                    origLMUV[3]+dXlmuv[1]*(float)i
-              	};
+                };
 				
 				Vector2 invSegLMUV = (dYlmuv[1] - dYlmuv[0]) * invHeight;
 
@@ -1239,7 +1239,7 @@ namespace uSrcTools
 
 			f.points = disp_verts.ToArray ();
 			f.uv = UVs.ToArray ();
-		        f.uv2 = UV2s.ToArray() ;
+		    f.uv2 = UV2s.ToArray() ;
 			f.cols = cols.ToArray ();
 			f.triangles = indices.ToArray ();
 
