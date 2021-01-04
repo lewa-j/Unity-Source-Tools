@@ -330,7 +330,7 @@ namespace uSrcTools
 				if (data.Contains ("angles"))
 				{
 					string[] t = data[data.FindIndex (n => n == "angles") + 1].Split (' ');
-					angles = new Vector3 (-ConvertUtils.floatParse(t[2]), -ConvertUtils.floatParse(t[1]), -ConvertUtils.floatParse(t[0]));
+					angles = new Vector3 (-ConvertUtils.floatParse(t[2]), ConvertUtils.floatParse(t[1]), ConvertUtils.floatParse(t[0]));
 					obj.transform.eulerAngles = angles;
 				}
 
@@ -375,7 +375,7 @@ namespace uSrcTools
 				if (data.Contains ("angles"))
 				{
 					string[] t = data[data.FindIndex (n => n == "angles") + 1].Split (' ');
-					angles = new Vector3 (-ConvertUtils.floatParse(t[2]), -ConvertUtils.floatParse(t[1]), -ConvertUtils.floatParse(t[0]));
+					angles = new Vector3 (-ConvertUtils.floatParse(t[2]), ConvertUtils.floatParse(t[1]), ConvertUtils.floatParse(t[0]));
 				}
 
 				if (data.Contains ("pitch"))
